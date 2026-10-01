@@ -65,6 +65,8 @@ class WorldView(QWidget):
         self.extra_labels = []      # дополнительные подписи рентгена: (x, y, текст)
         self.bed_view = player_view  # как грядка выглядит для программы (зависит от главы)
         self.active_robot = None
+        self.follow = None          # за каким роботом следит камера, пока он работает
+        self.focus_offset = 0.0     # сдвиг камеры, чтобы место действия было между окнами
         self._fog_fading = None
         self.particles = Particles()
         self.xray = False
@@ -270,6 +272,7 @@ class WorldView(QWidget):
             person.update(dt)
             if getattr(person, "leaving", False) and not person.busy():
                 person.hidden = True
+        self._follow_robot()
         vx, vy, vw, vh = self._view_rect()
         self.particles.ambient(dt, (vx, vy, vw, vh))
         self.particles.update(dt)
@@ -282,6 +285,18 @@ class WorldView(QWidget):
         self.update()
 
     # ------------------------------------------------------------ камера
+    def _follow_robot(self):
+        """Если работающий робот ушёл из поля зрения (между окнами), камера плавно едет за ним."""
+        r = self.robots.get(self.follow) if self.follow else None
+        if not r or not r.busy() or self._drag:
+            return
+        cx, cy = self.cam_target or self.cam
+        fx = cx - self.focus_offset
+        half_w = max(40, self.width() / self.zoom * 0.18)
+        half_h = max(30, self.height() / self.zoom * 0.28)
+        if abs(r.x - fx) > half_w or abs(r.y - 8 - cy) > half_h:
+            self.cam_target = [r.x + self.focus_offset, r.y - 8]
+
     def _view_rect(self):
         vw = max(1, math.ceil(self.width() / self.zoom))
         vh = max(1, math.ceil(self.height() / self.zoom))
@@ -561,14 +576,15 @@ class WorldView(QWidget):
             y += fm.height() + 14
 
     def _draw_float_texts(self, sp):
-        sp.setFont(self.font_ui)
+        sp.setFont(self.font_ui_bold)
         for pt in self.particles.items:
             if pt.kind != "text":
                 continue
             pos = self.world_to_screen(pt.x, pt.y)
             alpha = max(0, min(255, int(255 * (pt.life - pt.age) / 0.6)))
             sp.setPen(QColor(40, 20, 10, alpha))
-            sp.drawText(pos + QPointF(2, 2), pt.sprite)
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, 1), (-1, 1), (1, -1), (2, 2)):
+                sp.drawText(pos + QPointF(dx, dy), pt.sprite)
             sp.setPen(QColor(253, 224, 122, alpha))
             sp.drawText(pos, pt.sprite)
 

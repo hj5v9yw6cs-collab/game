@@ -44,6 +44,29 @@ SOLUTIONS = {
     "errors:4": 'total = 0\nbad = 0\nwith open("касса.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg, price = line.strip().split(",")\n        try:\n            total = total + int(kg) * int(price)\n        except ValueError:\n            bad = bad + 1\nprint("Плохих строк:", bad)',
     "write:2": 'stock = {"морковь": 40, "тыква": 12}\nwith open("заказ.txt", "w", encoding="utf-8") as f:\n    for item, kg in stock.items():\n        f.write(f"{item}: {kg} кг\\n")',
     "write:5": 'import csv\n\nwith open("остатки.txt", encoding="utf-8") as f:\n    lines = f.readlines()\n\nwith open("склад.csv", "w", encoding="utf-8-sig", newline="") as f:\n    writer = csv.writer(f, delimiter=";")\n    writer.writerow(["товар", "кг"])\n    for line in lines:\n        item, kg = line.strip().split(": ")\n        writer.writerow([item, kg])',
+    # глава 5
+    "json:2": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nprint(orders[0]["customer"]["name"])',
+    "json:3": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nprint(orders[0]["id"])',
+    "nested:2": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\ntotal = 0\nfor item in orders[0]["items"]:\n    total = total + item["kg"] * item["price"]\nprint(total)',
+    "nested:3": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nfor order in orders:\n    kg = 0\n    for item in order["items"]:\n        kg = kg + item["kg"]\n    print(f"Заказ {order[\'id\']}: {kg} кг")',
+    "sorting:3": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\n\ndef distance(order):\n    return order["customer"]["km"]\n\nroute = sorted(orders, key=distance)\nfor order in route:\n    print(order["id"], order["customer"]["km"], "км")',
+    "sorting:4": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\n\ndef distance(order):\n    return order["customer"]["km"]\n\nroute = sorted(orders, key=distance)\nfor order in route:\n    print(order["id"], order["customer"]["km"], "км")',
+    "sorting:5": 'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\n\ndef distance(order):\n    return order["customer"]["km"]\n\nfar = max(orders, key=distance)\nprint(far["customer"]["name"])',
+    "dates:2": 'from datetime import date\nimport json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\n\ntoday = date(2024, 9, 20)\nd = date.fromisoformat(orders[0]["date"])\nprint((today - d).days)',
+    "dates:3": 'from datetime import date\nimport json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\n\ntoday = date(2024, 9, 20)\nfor order in orders:\n    days = (today - date.fromisoformat(order["date"])).days\n    if days > 3:\n        print("Просрочен:", order["id"])',
+    # глава 6
+    "paths:2": 'from pathlib import Path\n\ncount = 0\nfor p in sorted(Path("Загрузки").iterdir()):\n    if p.suffix == ".jpg":\n        count = count + 1\nprint("Фото .jpg:", count)',
+    "paths:4": 'from pathlib import Path\n\ncounts = {}\nfor p in sorted(Path("Загрузки").iterdir()):\n    counts[p.suffix] = counts.get(p.suffix, 0) + 1\nfor ext, n in counts.items():\n    print(f"{ext}: {n}")',
+    "folders:2": 'from pathlib import Path\n\ndownloads = Path("Загрузки")\ndocs = downloads / "Документы"\ndocs.mkdir(exist_ok=True)\nfor p in sorted(downloads.glob("*.pdf")):\n    p.rename(docs / p.name)',
+    "folders:3": 'from pathlib import Path\n\ndownloads = Path("Загрузки")\ntables = downloads / "Таблицы"\ntables.mkdir(exist_ok=True)\nfor p in sorted(downloads.glob("*.csv")):\n    p.rename(tables / p.name)',
+    "rename:2": 'from pathlib import Path\n\nfor i, p in enumerate(sorted(Path("фото").iterdir()), start=1):\n    p.rename(p.parent / f"урожай_{i:03}{p.suffix}")',
+    "rename:3": 'from pathlib import Path\n\nfor i, p in enumerate(sorted(Path("скриншоты").iterdir()), start=1):\n    p.rename(p.parent / f"скрин_{i:02}.png")',
+    "report:2": 'import csv\nfrom pathlib import Path\n\ntotal = 0\nfor p in sorted(Path("неделя").glob("*.csv")):\n    with open(p, encoding="utf-8") as f:\n        for row in csv.DictReader(f):\n            total = total + int(row["кг"])\nprint("За неделю:", total, "кг")',
+    "report:4": 'import csv\nfrom collections import Counter\nfrom pathlib import Path\n\nkg = Counter()\nfor p in sorted(Path("неделя").glob("*.csv")):\n    with open(p, encoding="utf-8") as f:\n        for row in csv.DictReader(f):\n            kg[row["товар"]] += int(row["кг"])\nbest, amount = kg.most_common(1)[0]\nprint(best)',
+    # глава 7
+    "weather:2": 'import json\n\nwith open("погода.json", encoding="utf-8") as f:\n    forecast = json.load(f)\ndays = forecast["daily"]\nfor day in days:\n    if day["rain_mm"] == 0:\n        print(day["date"])',
+    "weather:3": 'import json\n\nwith open("погода.json", encoding="utf-8") as f:\n    forecast = json.load(f)\ndays = forecast["daily"]\n\n\ndef temperature(day):\n    return day["temp"]\n\nwarm = max(days, key=temperature)\nprint(warm["date"])',
+    "fair:3": "def fair_price(price, kg):\n    if kg > 50:\n        return round(price * 0.8)\n    return price",
 }
 
 # Типичные ошибки новичков: проверка должна их не пропустить
@@ -73,6 +96,26 @@ WRONG = {
                 'print("Сухих грядок:", 5)'],
     "andor:4": ['for грядка in поле:\n    print(грядка["название"])',
                 'for грядка in поле:\n    if грядка["культура"] == "морковь":\n        print(грядка["название"])'],
+    # глава 7
+    "weather:2": ['import json\n\nwith open("погода.json", encoding="utf-8") as f:\n    forecast = json.load(f)\ndays = forecast["daily"]\nfor day in days:\n    print(day["date"])'],
+    "weather:quest": ['import json\n\nwith open("погода.json", encoding="utf-8") as f:\n    forecast = json.load(f)\ndays = forecast["daily"]\n\n\ndef temperature(day):\n    return day["temp"]\n\nbest = max(days, key=temperature)\nprint(f"Ярмарка: {best[\'date\']}, +{best[\'temp\']}°")\nwith open("день_ярмарки.txt", "w", encoding="utf-8") as f:\n    f.write(best["date"])',
+                      'print("Ярмарка: 2024-09-24, +16°")\nwith open("день_ярмарки.txt", "w", encoding="utf-8") as f:\n    f.write("2024-09-24")'],
+    "fair:3": ["def fair_price(price, kg):\n    return round(price * 0.8)", "def fair_price(price, kg):\n    if kg >= 50:\n        return round(price * 0.8)\n    return price"],
+    # глава 6
+    "paths:2": ['print("Фото .jpg:", 2)'],
+    "paths:quest": ['from pathlib import Path\n\nphotos = docs = tables = 0\nfor p in sorted(Path("Загрузки").iterdir()):\n    if p.suffix in [".jpg", ".jpeg", ".png"]:\n        photos += 1\n    elif p.suffix in [".pdf", ".txt"]:\n        docs += 1\n    elif p.suffix == ".csv":\n        tables += 1\nprint("Фото:", photos)\nprint("Документы:", docs)\nprint("Таблицы:", tables)'],
+    "folders:quest": ['from pathlib import Path\n\ndownloads = Path("Загрузки")\nfor name in ["Фото", "Документы", "Таблицы"]:\n    (downloads / name).mkdir(exist_ok=True)\nfor p in sorted(downloads.glob("*.jpg")):\n    p.rename(downloads / "Фото" / p.name)\nfor p in sorted(downloads.glob("*.pdf")):\n    p.rename(downloads / "Документы" / p.name)\nfor p in sorted(downloads.glob("*.csv")):\n    p.rename(downloads / "Таблицы" / p.name)'],
+    "rename:2": ['from pathlib import Path\n\nfor i, p in enumerate(sorted(Path("фото").iterdir()), start=1):\n    p.rename(p.parent / f"урожай_{i}{p.suffix}")'],
+    "rename:quest": ['from pathlib import Path\n\nfor i, p in enumerate(sorted(Path("фото").iterdir()), start=1):\n    p.rename(p.parent / f"осень_{i:03}{p.suffix}")\nprint("Переименовано:", i)'],
+    "report:quest": ['with open("отчёт_за_неделю.txt", "w", encoding="utf-8") as f:\n    f.write("Всего продано: 116 кг\\n")\n    f.write("Выручка: 4090 руб.\\n")\n    f.write("Лучший товар: морковь\\n")'],
+    # глава 5
+    "json:2": ['print("Даша")'],
+    "json:quest": ['import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nfor order in orders:\n    deliver(order["id"])\nprint("Доставлено:", 5)',
+                   'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\ndeliver(101)\ndeliver(102)\ndeliver(104)\ndeliver(105)\nprint("Доставлено: 4")'],
+    "nested:quest": ['import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nfor order in orders:\n    if order["paid"]:\n        deliver(order["id"])'],
+    "sorting:quest": ['import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nfor order in orders:\n    if order["paid"]:\n        deliver(order["id"])',
+                      'import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\ndeliver(102)\ndeliver(105)\ndeliver(101)\ndeliver(104)'],
+    "dates:quest": ['import json\n\nwith open("orders.json", encoding="utf-8") as f:\n    orders = json.load(f)\nfor order in orders:\n    if order["paid"]:\n        deliver(order["id"])'],
     # глава 4
     "files:5": ['print("Всего на складе:", 115, "кг")'],
     "files:quest": ['print("тыква: 12 кг — заказать!")\nprint("яблоки: 8 кг — заказать!")\nprint(115)',

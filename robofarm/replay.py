@@ -252,19 +252,19 @@ class Replay(QObject):
         short = path.rstrip("/").split("/")[-1] or path
         op = ev["op"]
         if op == "read":
-            label, anims, sound = f"читает {short}", ("read", "scan"), "paper"
+            label, anims, sound = f"читает {short}", ("read", "scan", "think"), "paper"
         elif op == "write":
-            label, anims, sound = f"пишет {short}", ("write", "stamp", "stack", "scan"), "write"
+            label, anims, sound = f"пишет {short}", ("write", "stamp", "stack", "scan", "peck"), "write"
         elif op == "move":
             to = (ev.get("to") or "").rstrip("/")
             folder = to.rsplit("/", 1)[0] + "/" if "/" in to else ""
             new = to.split("/")[-1]
             label = f"{short} → {folder}{new if new != short else ''}"
-            anims, sound = ("sort", "carry", "stack"), "paper"
+            anims, sound = ("sort", "carry", "stack", "point"), "paper"
         elif op == "mkdir":
-            label, anims, sound = f"новая папка {short}", ("stamp", "stack", "scan"), "tag"
+            label, anims, sound = f"новая папка {short}", ("stamp", "stack", "scan", "peck"), "tag"
         else:
-            label, anims, sound = f"удалён {short}", ("stamp", "scan"), "paper"
+            label, anims, sound = f"удалён {short}", ("stamp", "scan", "peck"), "paper"
         assets = world.assets
         anim = next((a for a in anims if assets.get(f"{robot.id}_{a}_left") or assets.get(f"{robot.id}_{a}")),
                     "happy")

@@ -218,7 +218,8 @@ class GameWindow(QMainWindow):
         free_x = (left + right) / 2
         gx, gy = point or self._focus_point()
         z = self.world.zoom
-        self.world.center_on(gx + (W / 2 - free_x) / z, gy, smooth)
+        self.world.focus_offset = (W / 2 - free_x) / z
+        self.world.center_on(gx + self.world.focus_offset, gy, smooth)
 
     def _set_play_ui(self, visible):
         for w in (self.hud, self.lesson_win, self.script_win, self.memory_win):
@@ -446,6 +447,7 @@ class GameWindow(QMainWindow):
     def goto_step(self, li, si):
         self.replay.stop()
         self.pending = None
+        self.world.follow = None
         prev = self.lesson()
         self.save["lesson"], self.save["step"] = li, si
         self.save["max_lesson"] = max(self.save["max_lesson"], li)
@@ -604,6 +606,7 @@ class GameWindow(QMainWindow):
         ctx = {"home": self._home(lesson.robot, lesson)}
         if lesson.zone in FILES_SPOT:
             ctx["files"] = spots[FILES_SPOT[lesson.zone]]
+        self.world.follow = lesson.robot
         self.replay.start(raw, stepping=stepping, robot_id=lesson.robot, ctx=ctx)
 
     def _on_replay_done(self, raw):
