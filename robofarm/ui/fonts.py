@@ -1,47 +1,42 @@
-"""Пиксельные шрифты игры.
+"""Шрифты игры.
 
-Tiny5 — текст интерфейса (чёткая кириллица, рисован на сетке 10 px, поэтому размеры 10/20/30).
-Klusha Mono — код (собран из глифов Claude Design, сетка 12 px).
-Press Start 2P — логотип и крупные заголовки.
+PT Sans — весь текст интерфейса: объяснения, кнопки, диалоги (сделан для русского языка, отлично читается).
+PT Mono — код, как в настоящем редакторе.
+Press Start 2P — только логотип.
 """
 
 from PySide6.QtGui import QFont, QFontDatabase
 
 from robofarm.assets import DATA_DIR
 
-UI_FAMILY = "Tiny5"
-CODE_FAMILY = "Klusha Mono"
+UI_FAMILY = "PT Sans"
+CODE_FAMILY = "PT Mono"
 TITLE_FAMILY = "Press Start 2P"
+
+FONT_FILES = ("PTSans-Regular.ttf", "PTSans-Bold.ttf", "PTMono-Regular.ttf", "PressStart2P-Regular.ttf")
 
 
 def load_fonts():
-    for name in ("Tiny5-Regular.ttf", "KlushaMono.ttf", "PressStart2P-Regular.ttf"):
+    for name in FONT_FILES:
         QFontDatabase.addApplicationFont(str(DATA_DIR / "fonts" / name))
 
 
-def _snap(size):
-    """Пиксельный шрифт чёткий только на кратных размерах."""
-    if size < 14:
-        return 10
-    if size <= 24:
-        return 20
-    return 30
-
-
-def ui_font(size=20, bold=False):
+def ui_font(size=17, bold=False):
     f = QFont(UI_FAMILY)
-    f.setPixelSize(_snap(size))
-    f.setStyleStrategy(QFont.StyleStrategy.NoAntialias)
-    f.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
+    f.setPixelSize(int(size))
+    if bold:
+        f.setBold(True)
     return f
+
+
+CODE_SIZES = {1: 14, 2: 19, 3: 26}
 
 
 def code_font(scale=2):
     f = QFont(CODE_FAMILY)
-    f.setPixelSize(12 * scale)
-    f.setStyleStrategy(QFont.StyleStrategy.NoAntialias)
-    f.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
+    f.setPixelSize(CODE_SIZES.get(scale, 17))
     f.setFixedPitch(True)
+    f.setStyleHint(QFont.StyleHint.Monospace)
     return f
 
 

@@ -139,7 +139,7 @@ class MemoryView(QWidget):
                 cell = QRectF(cx, body.y() + 18, cw, body.height() - 20)
                 draw_nine(p, self.assets, "mem_crate", cell)
                 draw_sprite(p, self.assets, "mem_tag", cx + cw / 2 - 7, body.y() + 6)
-                p.setFont(ui_font(11, bold=True))
+                p.setFont(ui_font(12, bold=True))
                 p.setPen(QColor(ui["text"]))
                 p.drawText(QRectF(cx + cw / 2 - 7, body.y() + 6, 14, 10), Qt.AlignmentFlag.AlignCenter, str(i))
                 p.setFont(self.font_val)

@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QMainWindow
 
 from robofarm import paths
 from robofarm.assets import Assets
+from robofarm.fallbacks import add_fallbacks
 from robofarm.lessons.base import Result, gender
 from robofarm.lessons.chapter1 import INTRO, LESSONS, OUTRO
 from robofarm.replay import Replay
@@ -39,6 +40,7 @@ class GameWindow(QMainWindow):
         self.resize(1440, 900)
         self.setMinimumSize(1100, 720)
         self.assets = Assets()
+        add_fallbacks(self.assets)
         self.world = WorldView(self.assets)
         self.setCentralWidget(self.world)
         a = self.assets

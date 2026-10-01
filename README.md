@@ -85,7 +85,7 @@ tests/                     проверки уроков и песочницы: 
 ## Авторство и лицензии
 
 - **Графика:** сделана в Claude Design специально для этой игры. Промты лежат в `docs/`.
-- **Шрифты:** [Tiny5](https://fonts.google.com/specimen/Tiny5) и [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) — SIL Open Font License, тексты лицензий в `robofarm/data/fonts/`. Klusha Mono — собственный шрифт игры.
+- **Шрифты:** [PT Sans](https://fonts.google.com/specimen/PT+Sans), [PT Mono](https://fonts.google.com/specimen/PT+Mono) и [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) — SIL Open Font License, тексты лицензий в `robofarm/data/fonts/`.
 - **Звуки и музыка:** синтезированы кодом (`tools/make_sounds.py`).
 
 Концепция игры: [docs/CONCEPT.md](docs/CONCEPT.md).

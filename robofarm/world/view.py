@@ -71,14 +71,12 @@ class WorldView(QWidget):
         self._shadow_static = None
         self._fog = []
         from robofarm.ui.fonts import ui_font
-        self.font_ui = ui_font(20)
-        self.font_ui_bold = ui_font(20)
-        self.font_code = QFont("Klusha Mono")
-        self.font_code.setPixelSize(12 * UI_SCALE)
+        from robofarm.ui.fonts import code_font
+        self.font_ui = ui_font(16)
+        self.font_ui_bold = ui_font(16, bold=True)
+        self.font_code = code_font(2)
         self.font_code.setStyleStrategy(QFont.StyleStrategy.NoAntialias)
-        self.font_code_small = QFont("Klusha Mono")
-        self.font_code_small.setPixelSize(12)
-        self.font_code_small.setStyleStrategy(QFont.StyleStrategy.NoAntialias)
+        self.font_code_small = code_font(1)
         self._build_static()
         self.clock = QElapsedTimer()
         self.clock.start()

@@ -355,12 +355,12 @@ class DialogBox(QWidget):
         p.setFont(ui_font(17, True))
         p.setPen(QColor(TEXT))
         p.drawText(plate, Qt.AlignmentFlag.AlignCenter, self.name)
-        p.setFont(ui_font(20))
+        p.setFont(ui_font(19))
         p.drawText(QRectF(184, 30, self.width() - 214, self.height() - 60),
                    Qt.TextFlag.TextWordWrap, self.text[: self.shown])
         if self.shown >= len(self.text):
             p.setPen(QColor(MUTED))
-            p.setFont(ui_font(10))
+            p.setFont(ui_font(14))
             hint = "щёлкни, чтобы продолжить"
             p.drawText(QPointF(self.width() - p.fontMetrics().horizontalAdvance(hint) - 30, self.height() - 26), hint)
 

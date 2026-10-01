@@ -121,3 +121,85 @@ class FarmSim:
         if lang == "en":
             return en
         return {**ru, **en}
+
+
+class ShopSim:
+    """Лавка: очередь покупателей, продажи и ценники."""
+
+    def __init__(self, queue, record):
+        self.queue = copy.deepcopy(queue or [])
+        self.record = record
+        self.served = []
+        self.tags = []
+
+    def _customer(self, customer):
+        name = customer.get("name") if isinstance(customer, dict) else customer
+        if not isinstance(name, str):
+            raise TypeError("sell() ждёт покупателя из очереди queue и сумму, например: sell(customer, 60). "
+                            f"А первым значением пришло {type(customer).__name__}: {customer!r}")
+        for c in self.queue:
+            if c["name"] == name:
+                return c
+        names = ", ".join(c["name"] for c in self.queue) or "очередь пуста"
+        raise ValueError(f"Покупателя «{name}» нет в очереди. В очереди: {names}.")
+
+    def sell(self, customer, total):
+        c = self._customer(customer)
+        if isinstance(total, bool) or not isinstance(total, (int, float)):
+            raise TypeError(f"Сумма в sell(покупатель, сумма) должна быть числом, а пришло "
+                            f"{type(total).__name__}: {total!r}")
+        self.served.append({"name": c["name"], "total": total})
+        self.record({"k": "act", "cmd": "sell", "who": c["name"], "total": total, "ok": True})
+
+    def tag(self, text):
+        text = str(text)
+        self.tags.append(text)
+        self.record({"k": "act", "cmd": "tag", "text": text[:48], "ok": True})
+
+    def commands(self):
+        def sell(customer, total):
+            """Продать покупателю из очереди: sell(customer, 60)"""
+            self.sell(customer, total)
+
+        def tag(text):
+            """Повесить ценник на прилавок: tag("Тыква — 30 руб/кг")"""
+            self.tag(text)
+        return {"sell": sell, "tag": tag}
+
+
+class PostSim:
+    """Почта: доставка заказов по деревне."""
+
+    def __init__(self, orders, record):
+        self.orders = {o["id"]: o for o in (orders or [])}
+        self.record = record
+        self.delivered = []
+
+    def deliver(self, order_id):
+        if isinstance(order_id, dict):
+            order_id = order_id.get("id")
+        if isinstance(order_id, str) and order_id.isdigit():
+            order_id = int(order_id)
+        if order_id not in self.orders:
+            known = ", ".join(str(i) for i in self.orders) or "нет заказов"
+            raise ValueError(f"Заказа №{order_id} нет. Есть заказы: {known}. "
+                             "deliver() ждёт номер заказа: deliver(order[\"id\"]).")
+        o = self.orders[order_id]
+        self.delivered.append(order_id)
+        self.record({"k": "act", "cmd": "deliver", "id": order_id, "house": o.get("house", 1),
+                     "who": o.get("customer", {}).get("name", ""), "ok": True})
+
+    def commands(self):
+        def deliver(order_id):
+            """Отвезти заказ: deliver(order["id"])"""
+            self.deliver(order_id)
+        return {"deliver": deliver}
+
+
+def player_view_en(bed):
+    return {"bed": bed["name"], "crop": bed["crop"], "humidity": bed["humidity"], "ripe": bed["stage"] == "ripe"}
+
+
+def player_view_ru(bed):
+    return {"грядка": bed["name"], "культура": bed["crop"], "влажность": bed["humidity"],
+            "спелая": bed["stage"] == "ripe"}

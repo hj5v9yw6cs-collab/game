@@ -18,7 +18,7 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Робоферма")
     app.setStyleSheet("QToolTip { background: #f8eed4; color: #3d2318; border: 2px solid #95603a;"
-                      " font-family: 'Tiny5'; font-size: 20px; padding: 4px; }")
+                      " font-family: 'PT Sans'; font-size: 15px; padding: 4px; }")
     window = GameWindow()
     window.show()
     sys.exit(app.exec())
