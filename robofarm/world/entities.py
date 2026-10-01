@@ -3,7 +3,16 @@
 import math
 import random
 
-ROBOT_NAMES = {"bublik": "Бублик", "klusha": "Клуша"}
+ROBOT_NAMES = {"bublik": "Бублик", "klusha": "Клуша", "murzik": "Мурзик", "bobr": "Бобр", "iskra": "Искра",
+               "uhta": "Ухта"}
+# В чьей памяти: «Память Бублика»
+ROBOT_GENITIVE = {"bublik": "Бублика", "klusha": "Клуши", "murzik": "Мурзика", "bobr": "Бобра", "iskra": "Искры",
+                  "uhta": "Ухты"}
+# Имя файла скрипта робота
+ROBOT_FILES = {"bublik": "бублик.py", "murzik": "мурзик.py", "bobr": "бобр.py", "iskra": "искра.py", "uhta": "ухта.py",
+               "klusha": "клуша.py"}
+# Соседи со своими спрайтами; остальных покупателей рисуем деревенскими жителями
+PEOPLE_SPRITES = {"Михалыч": "mihalych", "Валя": "valya", "Даша": "dasha", "Петя": "petya", "Сидоров": "sidorov"}
 
 
 class Robot:
@@ -25,6 +34,8 @@ class Robot:
         self.speed_mul = 1.0
         self.hidden = False
         self.rest_anim = "idle"
+        self.data = None      # для покупателей: словарь из данных урока
+        self.leaving = False
 
     # --- очередь действий ---
     def busy(self):
@@ -143,6 +154,9 @@ class Particles:
 
     def burst(self, sprite, x, y, life=0.5):
         self.items.append(Particle(sprite, x, y, 0, 0, life, "fx"))
+
+    def float_icon(self, sprite, x, y, life=1.3):
+        self.items.append(Particle(sprite, x, y, 0, -12, life, "icon"))
 
     def float_text(self, text, x, y):
         p = Particle(text, x, y, 0, -14, 1.4, "text")

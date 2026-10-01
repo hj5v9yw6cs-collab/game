@@ -29,8 +29,10 @@ def md(text, female=False):
     return out.replace("\n", "<br>")
 
 
-def sprite_pixmap(assets, sid, scale=2):
+def sprite_pixmap(assets, sid, scale=2, fit=None):
     img = assets[sid].frame()
+    if fit:
+        scale = max(1, min(scale, fit // max(img.width(), img.height())))
     return QPixmap.fromImage(img.scaled(img.width() * scale, img.height() * scale))
 
 
@@ -287,6 +289,11 @@ class ScriptWindow(PixelWindow):
         lay.addWidget(self.output, 1)
         self.set_running(False)
 
+    def set_robot(self, robot, filename):
+        self.icon_id = f"{robot}_icon" if self.assets.get(f"{robot}_icon") else "icon_notebook"
+        self.title = filename
+        self.update()
+
     def set_running(self, running, stepping=False):
         self.btn_run.setEnabled(not running or stepping)
         self.btn_stop.setEnabled(running)
@@ -304,6 +311,10 @@ class MemoryWindow(PixelWindow):
         lay.setContentsMargins(0, 0, 0, 0)
         self.view = MemoryView(assets)
         lay.addWidget(self.view)
+
+    def set_robot(self, robot_name):
+        self.title = f"Память {robot_name}"
+        self.update()
 
 
 class DialogBox(QWidget):
@@ -329,7 +340,7 @@ class DialogBox(QWidget):
     def _type(self):
         before = self.shown
         self.shown = min(len(self.text), self.shown + 2)
-        if before // 6 != self.shown // 6 and self.robot in ("klusha", "bublik"):
+        if before // 6 != self.shown // 6:
             play(f"voice_{self.robot}", 0.6)
         if self.shown >= len(self.text):
             self.timer.stop()
@@ -372,14 +383,21 @@ class Hud(QWidget):
     notebook = Signal()
     folder = Signal()
     sound = Signal()
+    lessons = Signal()
+    catalog = Signal()
 
     def __init__(self, assets, parent):
         super().__init__(parent)
         self.assets = assets
-        self.coins, self.chapter, self.lesson = 0, "Глава 1: Сарай", ""
+        self.coins, self.chapter, self.lesson, self.day = 0, "Глава 1: Сарай", "", 1
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addStretch(1)
+        self.btn_lessons = PixelButton(assets, "Уроки", "icon_map", "wood", tooltip="Все главы и уроки")
+        self.btn_lessons.clicked.connect(self.lessons)
+        self.btn_catalog = PixelButton(assets, "Каталог", "icon_coins", "wood",
+                                       tooltip="Бабушкин каталог: украшения для фермы за монеты")
+        self.btn_catalog.clicked.connect(self.catalog)
         self.btn_xray = PixelButton(assets, "Рентген", "icon_xray", "wood", tooltip="Показать данные мира (R)")
         self.btn_xray.clicked.connect(self.xray)
         self.btn_note = PixelButton(assets, "Блокнот", "icon_notebook", "wood", tooltip="Шпаргалка Клуши")
@@ -388,7 +406,7 @@ class Hud(QWidget):
         self.btn_folder.clicked.connect(self.folder)
         self.btn_sound = PixelButton(assets, "", "icon_sound_on", "wood", tooltip="Звук и музыка")
         self.btn_sound.clicked.connect(self.sound)
-        for b in (self.btn_xray, self.btn_note, self.btn_folder, self.btn_sound):
+        for b in (self.btn_lessons, self.btn_catalog, self.btn_xray, self.btn_note, self.btn_folder, self.btn_sound):
             lay.addWidget(b)
         self.setFixedHeight(46)
 
@@ -396,7 +414,9 @@ class Hud(QWidget):
         self.btn_sound.icon_id = "icon_sound_on" if on else "icon_sound_off"
         self.btn_sound.update()
 
-    def set_info(self, coins=None, chapter=None, lesson=None):
+    def set_info(self, coins=None, chapter=None, lesson=None, day=None):
+        if day is not None:
+            self.day = day
         if coins is not None:
             self.coins = coins
         if chapter is not None:
@@ -416,12 +436,25 @@ class Hud(QWidget):
         draw_sprite(p, self.assets, "icon_coins", 12, 10)
         p.setPen(QColor(TEXT))
         p.drawText(QPointF(44, 22 + fm.ascent() / 2 - 2), text)
+        day = f"День {self.day}"
+        wd = fm.horizontalAdvance(day) + 62
+        rd = QRectF(w + 10, 2, wd, 40)
+        draw_nine(p, self.assets, "ui_titlebar", rd)
+        draw_sprite(p, self.assets, "icon_day", w + 22, 10)
+        p.drawText(QPointF(w + 54, 22 + fm.ascent() / 2 - 2), day)
+        x = w + 10 + wd + 10
+        room = max(120, self.width() - x - self._buttons_width() - 12)
         label = self.chapter + (f" · {self.lesson}" if self.lesson else "")
+        label = fm.elidedText(label, Qt.TextElideMode.ElideRight, int(room - 62))
         w2 = fm.horizontalAdvance(label) + 62
-        r2 = QRectF(w + 10, 2, w2, 40)
+        r2 = QRectF(x, 2, w2, 40)
         draw_nine(p, self.assets, "ui_titlebar", r2)
-        draw_sprite(p, self.assets, "icon_chapter", w + 22, 10)
-        p.drawText(QPointF(w + 54, 22 + fm.ascent() / 2 - 2), label)
+        draw_sprite(p, self.assets, "icon_chapter", x + 12, 10)
+        p.drawText(QPointF(x + 44, 22 + fm.ascent() / 2 - 2), label)
+
+    def _buttons_width(self):
+        return sum(b.sizeHint().width() + 6 for b in (self.btn_lessons, self.btn_catalog, self.btn_xray,
+                                                      self.btn_note, self.btn_folder, self.btn_sound))
 
 
 class InfoWindow(PixelWindow):
@@ -568,3 +601,106 @@ class TitleScreen(QWidget):
         p.drawText(QPointF(panel.center().x() - p.fontMetrics().horizontalAdvance(tip) / 2, y + 76), tip)
         k = self.assets["klusha_portrait_proud"].frame()
         p.drawImage(QRectF(panel.x() + 56, panel.y() + 196, 192, 192), k)
+
+
+class _ListWindow(PixelWindow):
+    """Окно со списком строк и кнопкой «Закрыть» (основа для списка уроков и каталога)."""
+
+    closed_by_user = Signal()
+
+    def __init__(self, assets, title, icon, width=680, height=640, parent=None):
+        super().__init__(assets, title, icon=icon, parent=parent, closable=False, resizable=False)
+        lay = QVBoxLayout(self.body)
+        lay.setContentsMargins(6, 0, 6, 0)
+        lay.setSpacing(10)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }")
+        inner = QWidget()
+        self.rows = QVBoxLayout(inner)
+        self.rows.setContentsMargins(0, 0, 10, 0)
+        self.rows.setSpacing(6)
+        scroll.setWidget(inner)
+        lay.addWidget(scroll, 1)
+        bottom = QHBoxLayout()
+        self.footer = text_label("", 15, MUTED)
+        bottom.addWidget(self.footer, 1)
+        close = PixelButton(assets, "Закрыть", "icon_close", "primary")
+        close.clicked.connect(self.closed_by_user)
+        bottom.addWidget(close)
+        lay.addLayout(bottom)
+        self.resize(width, height)
+
+    def add_header(self, text):
+        lab = text_label(text, 19, TEXT, bold=True)
+        lab.setContentsMargins(0, 8, 0, 0)
+        self.rows.addWidget(lab)
+
+    def add_row(self, icon, text, button=None):
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        if icon:
+            pic = QLabel()
+            pic.setPixmap(sprite_pixmap(self.assets, icon, 2, fit=64))
+            pic.setFixedWidth(64)
+            pic.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            row.addWidget(pic, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(text_label(text, 16, TEXT), 1)
+        if button:
+            row.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.rows.addLayout(row)
+
+
+class LessonListWindow(_ListWindow):
+    """Все главы и уроки: пройденные можно повторить в любой момент."""
+
+    picked = Signal(int)
+
+    def __init__(self, assets, chapters, lessons, done, max_lesson, current, parent=None):
+        super().__init__(assets, "Уроки", "icon_map", parent=parent)
+        for ch in chapters:
+            self.add_header(f"Глава {ch.number}. {html.escape(ch.title)}")
+            for lesson in ch.lessons:
+                i = lessons.index(lesson)
+                opened = i <= max_lesson
+                if lesson.id in done:
+                    icon = "icon_check"
+                elif i == current:
+                    icon = "icon_play"
+                else:
+                    icon = "icon_step" if opened else None
+                text = f"<b>Урок {i + 1}. {html.escape(lesson.title)}</b> — {html.escape(lesson.topic)}"
+                if not opened:
+                    text = f"<span style='color:{MUTED};'>Урок {i + 1}. {html.escape(lesson.title)} — откроется позже</span>"
+                    self.add_row(icon, text)
+                    continue
+                b = PixelButton(assets, "Открыть" if i != current else "Сейчас", kind="primary" if i == current else "wood")
+                b.clicked.connect(lambda _=False, i=i: self.picked.emit(i))
+                self.add_row(icon, text, b)
+        self.rows.addStretch(1)
+        self.footer.setText(f"Пройдено уроков: {len(done)} из {len(lessons)}")
+
+
+class CatalogWindow(_ListWindow):
+    """Бабушкин каталог: украшения фермы за монеты."""
+
+    bought = Signal(str)
+
+    def __init__(self, assets, catalog, coins, flags, parent=None):
+        super().__init__(assets, "Бабушкин каталог", "icon_coins", width=700, parent=parent)
+        self.add_row(None, "<i>Монеты приносят задания и роботы, которые работают сами каждый игровой день. "
+                           "Их можно потратить на украшения фермы.</i>")
+        for d in catalog:
+            text = f"<b>{html.escape(d.title)}</b><br>{html.escape(d.text)}"
+            if flags.get(d.flag):
+                b = PixelButton(assets, "Куплено", "icon_check", "wood")
+                b.setEnabled(False)
+            else:
+                b = PixelButton(assets, f"{d.price}", "icon_coin", "primary" if coins >= d.price else "wood",
+                                tooltip="Купить" if coins >= d.price else "Не хватает монет")
+                b.setEnabled(coins >= d.price)
+                b.clicked.connect(lambda _=False, i=d.id: self.bought.emit(i))
+            self.add_row(d.preview, text, b)
+        self.rows.addStretch(1)
+        self.footer.setText(f"У тебя {coins} монет")

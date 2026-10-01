@@ -420,6 +420,8 @@ def add_fallbacks(assets):
         put(f"{pid}_walk_down", walk, (8, 31), 150)
         put(f"{pid}_walk_up", walk, (8, 31), 150)
         put(f"{pid}_walk_left", walk, (8, 31), 150)
+        put(f"{pid}_walk_right", [f.mirrored(True, False) for f in walk], (8, 31), 150)
+        put(f"{pid}_idle_right", [f.mirrored(True, False) for f in idle], (8, 31), 600)
 
     # роботы — перекрашенные Бублик и Клуша
     for rid, (base, dh, ds, dv, swaps) in ROBOT_FALLBACK.items():

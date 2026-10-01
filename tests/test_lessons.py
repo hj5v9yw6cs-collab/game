@@ -1,5 +1,10 @@
-"""Каждый шаг урока: правильное решение проходит проверку, заготовка и типичные ошибки — нет."""
+"""Каждый шаг каждого урока: правильное решение проходит проверку, заготовка и типичные ошибки — нет.
 
+Код запускается ровно так же, как в игре: через robofarm.lessons.runtime и настоящую песочницу,
+вместе со скрытыми вариантами данных.
+"""
+
+import ast
 import json
 import subprocess
 import sys
@@ -10,69 +15,93 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from robofarm.lessons.base import Result  # noqa: E402
-from robofarm.lessons.chapter1 import LESSONS  # noqa: E402
+from robofarm.lessons import CHAPTERS, LESSONS  # noqa: E402
+from robofarm.lessons import runtime  # noqa: E402
 from robofarm.sandbox.engine import run  # noqa: E402
 from tests.solutions import SOLUTIONS, WRONG  # noqa: E402
 
 
-def execute(code, beds):
-    return Result(run({"code": code, "beds": beds, "lang": "ru"}), code)
+def execute(lesson, st, code):
+    payload, data0, hidden = runtime.build(lesson, st, code)
+    return runtime.result(run(payload), code, data0, hidden)
+
+
+def lesson_by_id(lid):
+    return next(l for l in LESSONS if l.id == lid)
 
 
 def checkable():
     for lesson in LESSONS:
         for i, step in enumerate(lesson.steps):
             if step.check:
-                yield lesson, i, step
+                yield pytest.param(lesson, i, step, id=f"{lesson.id}:{i}")
 
 
-@pytest.mark.parametrize("lesson,i,step", list(checkable()), ids=lambda x: getattr(x, "id", str(x)))
+def quests():
+    return [pytest.param(l, id=l.id) for l in LESSONS]
+
+
+def test_lesson_ids_are_unique():
+    ids = [l.id for l in LESSONS]
+    assert len(ids) == len(set(ids))
+
+
+def test_chapters_are_numbered_in_order():
+    assert [ch.number for ch in CHAPTERS] == list(range(1, len(CHAPTERS) + 1))
+
+
+@pytest.mark.parametrize("lesson,i,step", list(checkable()))
 def test_step_solution_passes(lesson, i, step):
     key = f"{lesson.id}:{i}"
     assert key in SOLUTIONS, f"нет эталона для {key}"
-    r = execute(SOLUTIONS[key], step.beds or lesson.beds)
+    r = execute(lesson, step, SOLUTIONS[key])
     assert r.error is None, r.error
     assert step.check(r) is None, step.check(r)
 
 
-@pytest.mark.parametrize("lesson,i,step", list(checkable()), ids=lambda x: getattr(x, "id", str(x)))
+@pytest.mark.parametrize("lesson,i,step", list(checkable()))
 def test_step_template_does_not_pass(lesson, i, step):
-    r = execute(step.code, step.beds or lesson.beds)
+    r = execute(lesson, step, step.code)
     assert r.error is not None or step.check(r) is not None
 
 
-@pytest.mark.parametrize("lesson", LESSONS, ids=lambda l: l.id)
+@pytest.mark.parametrize("lesson", quests())
 def test_quest_solution_passes_and_starter_fails(lesson):
     q = lesson.quest
-    r = execute(q.solution, lesson.beds)
+    r = execute(lesson, q, q.solution)
     assert r.error is None, r.error
     assert q.check(r) is None, q.check(r)
-    starter = execute(q.starter, lesson.beds)
-    assert q.check(starter) is not None
+    starter = execute(lesson, q, q.starter)
+    assert starter.error is not None or q.check(starter) is not None
 
 
 @pytest.mark.parametrize("key,codes", list(WRONG.items()))
 def test_typical_mistakes_are_caught(key, codes):
     lesson_id, idx = key.split(":")
-    lesson = next(l for l in LESSONS if l.id == lesson_id)
-    if idx == "quest":
-        check, beds = lesson.quest.check, lesson.beds
-    else:
-        step = lesson.steps[int(idx)]
-        check, beds = step.check, step.beds or lesson.beds
+    lesson = lesson_by_id(lesson_id)
+    st = lesson.quest if idx == "quest" else lesson.steps[int(idx)]
     for code in codes:
-        r = execute(code, beds)
-        assert r.error is not None or check(r) is not None, f"{key}: ошибочный код прошёл проверку:\n{code}"
+        r = execute(lesson, st, code)
+        assert r.error is not None or st.check(r) is not None, f"{key}: ошибочный код прошёл проверку:\n{code}"
 
 
-def test_run_steps_execute_without_errors():
-    for lesson in LESSONS:
-        for step in lesson.steps:
-            if step.kind in ("run", "look") and step.code and "____" not in step.code:
-                r = execute(step.code, step.beds or lesson.beds)
-                if step.kind == "run":
-                    assert r.error is None, (lesson.id, step.code, r.error)
+@pytest.mark.parametrize("lesson", quests())
+def test_run_steps_execute(lesson):
+    for step in lesson.steps:
+        if step.kind == "run":
+            r = execute(lesson, step, step.code)
+            if step.expect_error:
+                assert r.error is not None, (lesson.id, step.code)
+            else:
+                assert r.error is None, (lesson.id, step.code, r.error)
+
+
+@pytest.mark.parametrize("lesson", quests())
+def test_sample_code_is_valid_python(lesson):
+    for step in lesson.steps:
+        if step.code and step.kind in ("look", "run"):
+            ast.parse(step.code)
+    ast.parse(lesson.quest.solution)
 
 
 def test_sandbox_subprocess_roundtrip():

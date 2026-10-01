@@ -11,6 +11,10 @@ from robofarm.sound import play
 SPEEDS = [(1100, 0.8), (600, 1.3), (300, 2.2), (120, 3.8), (25, 9.0)]
 
 
+def _num(v):
+    return str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)
+
+
 class Replay(QObject):
     finished = Signal(object)
 
@@ -31,9 +35,12 @@ class Replay(QObject):
         if robot:
             robot.speed_mul = SPEEDS[self.speed][1]
 
-    def start(self, result, stepping=False, robot_id="bublik"):
+    def start(self, result, stepping=False, robot_id="bublik", ctx=None):
+        """ctx — где в мире всё находится: home (место робота), files (шкаф или стол с файлами)."""
         self.result = result
         self.robot_id = robot_id
+        self.ctx = ctx or {}
+        self._at_files = False
         self.stepping = stepping
         self.paused = False
         self.units = []
@@ -148,7 +155,22 @@ class Replay(QObject):
                 play(f"voice_{self.robot_id}", 0.7)
             self.wait_until = time.monotonic() + max(0.25, delay * 0.8)
             return
-        if ev["k"] != "act" or not robot:
+        if not robot:
+            return
+        if ev["k"] == "file":
+            self._file_event(ev, robot)
+            return
+        if ev["k"] != "act":
+            return
+        cmd = ev["cmd"]
+        if cmd == "sell":
+            self._sell(ev, robot)
+            return
+        if cmd == "tag":
+            self._tag(ev, robot)
+            return
+        if cmd == "deliver":
+            self._deliver(ev, robot)
             return
         name = ev["bed"]
         if name not in self.world.map.beds:
@@ -179,6 +201,79 @@ class Replay(QObject):
             play("warn", 0.7)
             robot.say("Ещё не созрела!" if ev.get("msg") != "уже пустая" else "Тут уже пусто!", 1.6)
 
+    # ------------------------------------------------------------ лавка, почта, файлы
+    def _sell(self, ev, robot):
+        world = self.world
+        person = world.people.get(ev["who"])
+
+        def done(person=person, total=ev["total"]):
+            if person and not person.hidden:
+                world.particles.float_icon("icon_coin", person.x, person.y - 30)
+                world.particles.float_text(f"+{_num(total)} руб.", person.x - 12, person.y - 34)
+                person.show_emote("emote_heart", 1.2)
+            world.serve_customer(ev["who"])
+            play("sell", 0.8)
+        robot.play("serve", 0.9, done, facing="right")
+
+    def _tag(self, ev, robot):
+        world = self.world
+
+        def done(text=ev["text"]):
+            world.price_tags.append(text)
+            sx, sy = world.map.spots["stall"]
+            world.particles.burst("fx_pop", sx - 30, sy - 24, 0.4)
+            play("tag", 0.9)
+        robot.play("tag", 0.7, done, facing="left")
+
+    def _deliver(self, ev, robot):
+        world = self.world
+        houses = world.map.spots["houses"]
+        hx, hy = houses[(int(ev.get("house", 1)) - 1) % len(houses)]
+        play("trot", 0.6)
+        robot.walk_to(hx, hy)
+
+        def done(ev=ev, hx=hx, hy=hy):
+            world.particles.float_icon("parcel", hx, hy - 20)
+            label = f"№{ev['id']}" + (f" — {ev['who']}" if ev.get("who") else "")
+            world.particles.float_text(label, hx - 20, hy - 30)
+            play("bell", 0.7)
+        robot.play("deliver", 0.8, done, facing="left")
+
+    FILE_ICONS = {".csv": "file_csv", ".json": "file_json", ".txt": "file_txt", ".py": "file_py",
+                  ".jpg": "file_image", ".jpeg": "file_image", ".png": "file_image", ".heic": "file_image"}
+
+    def _file_event(self, ev, robot):
+        world = self.world
+        spot = self.ctx.get("files")
+        if spot and not self._at_files:
+            robot.walk_to(*spot)
+            self._at_files = True
+        path = ev.get("path") or ""
+        short = path.rstrip("/").split("/")[-1] or path
+        op = ev["op"]
+        if op == "read":
+            label, anim, sound = f"читает {short}", "read", "paper"
+        elif op == "write":
+            label, anim, sound = f"пишет {short}", "write", "write"
+        elif op == "move":
+            to = (ev.get("to") or "").rstrip("/")
+            folder = to.rsplit("/", 1)[0] + "/" if "/" in to else ""
+            new = to.split("/")[-1]
+            label = f"{short} → {folder}{new if new != short else ''}"
+            anim, sound = "sort", "paper"
+        elif op == "mkdir":
+            label, anim, sound = f"новая папка {short}", "stamp", "tag"
+        else:
+            label, anim, sound = f"удалён {short}", "stamp", "paper"
+        ext = "." + short.rsplit(".", 1)[-1].lower() if "." in short else ""
+        icon = "folder_open" if op == "mkdir" else self.FILE_ICONS.get(ext, "file_txt")
+
+        def done(icon=icon, label=label, sound=sound):
+            world.particles.float_icon(icon, robot.x, robot.y - 22)
+            world.particles.float_text(label, robot.x - 24, robot.y - 30)
+            play(sound, 0.7)
+        robot.play(anim, 0.45, done, facing="left")
+
     def _finish(self):
         self.timer.stop()
         self.running = False
@@ -188,6 +283,9 @@ class Replay(QObject):
                 if b["name"] in self.world.beds:
                     self.world.beds[b["name"]].update({k: b[k] for k in ("humidity", "stage")})
         robot = self.world.robots.get(self.robot_id)
+        home = self.ctx.get("home")
+        if robot and home and (abs(robot.x - home[0]) > 20 or abs(robot.y - home[1]) > 20):
+            robot.walk_to(*home)
         err = res.get("error")
         if err:
             self.editor.set_exec_line(None)

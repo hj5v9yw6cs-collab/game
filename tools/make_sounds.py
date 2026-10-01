@@ -120,6 +120,39 @@ def sfx():
     save("power_on", mix(0.95, (0, tone(120, 0.6, "saw", 0.25, sweep=900)),
                          (0.55, tone(1760, 0.08, "square", 0.15)), (0.65, tone(2349, 0.25, "square", 0.15, release=0.2))))
     save("step", tone(660, 0.05, "tri", 0.3, release=0.04, sweep=880))
+    # голоса новых роботов
+    for i, f in enumerate((520, 580, 640)):
+        save(f"voice_murzik_{i + 1}", tone(f, 0.07, "tri", 0.35, release=0.04, sweep=f * 1.3, vibrato=0.02))
+    for i, f in enumerate((220, 250, 280)):
+        save(f"voice_bobr_{i + 1}", tone(f, 0.06, "pulse", 0.3, release=0.04, sweep=f * 1.1))
+    for i, f in enumerate((420, 470, 520)):
+        save(f"voice_iskra_{i + 1}", tone(f, 0.06, "square", 0.22, release=0.04, sweep=f * 0.8, vibrato=0.03))
+    for i, f in enumerate((380, 410, 440)):
+        save(f"voice_uhta_{i + 1}", tone(f, 0.08, "sine", 0.45, release=0.05, sweep=f * 0.92))
+    save("meow", mix(0.42, (0, tone(600, 0.36, "tri", 0.35, sweep=900, vibrato=0.02)),
+                     (0.18, tone(880, 0.2, "tri", 0.25, sweep=520, release=0.15))))
+    save("hoot", mix(0.6, (0, tone(392, 0.18, "sine", 0.5, sweep=370)), (0.26, tone(370, 0.3, "sine", 0.5, sweep=330))))
+    save("neigh", mix(0.55, (0, tone(700, 0.5, "square", 0.18, sweep=420, vibrato=0.08)),
+                      (0, noise(0.3, 0.15, 8, 0.5))))
+    save("chomp", mix(0.3, (0, noise(0.06, 0.4, 30, 0.6)), (0.12, noise(0.06, 0.4, 30, 0.6))))
+    save("sell", mix(0.6, (0, noise(0.05, 0.3, 40, 0.8)), (0.05, tone(1568, 0.08, "square", 0.25)),
+                     (0.12, tone(2093, 0.4, "square", 0.22, release=0.35))))
+    save("tag", mix(0.2, (0, noise(0.04, 0.5, 50, 0.4)), (0, tone(180, 0.08, "sine", 0.5, sweep=90))))
+    save("paper", mix(0.25, (0, noise(0.12, 0.3, 20, 0.7)), (0.1, noise(0.1, 0.25, 25, 0.6))))
+    save("write", mix(0.4, *[(i * 0.07, noise(0.05, 0.25, 40, 0.9)) for i in range(5)]))
+    save("trot", mix(0.5, *[(i * 0.12, tone(300 + (i % 2) * 60, 0.04, "tri", 0.4, release=0.03)) for i in range(4)]))
+    save("bell", mix(0.8, (0, tone(1760, 0.7, "sine", 0.3, release=0.6)), (0, tone(2637, 0.5, "sine", 0.12, release=0.45))))
+    save("zone_open", mix(1.4, *[(i * 0.1, tone(note(n), 0.5, "sine", 0.22, release=0.4, vibrato=0.006))
+                                 for i, n in enumerate(["G4", "C5", "E5", "G5", "C6", "E6"])],
+                          (0, noise(1.2, 0.08, 1.5, 0.2))))
+    fan = [("G4", 0.0, 0.15), ("C5", 0.15, 0.15), ("E5", 0.3, 0.15), ("G5", 0.45, 0.3), ("E5", 0.75, 0.15),
+           ("G5", 0.9, 0.9)]
+    parts = [(st, tone(note(n), d, "square", 0.22, release=0.1)) for n, st, d in fan]
+    parts += [(st, tone(note(n) / 2, d, "pulse", 0.18, release=0.1)) for n, st, d in fan]
+    parts += [(0.9, tone(note("C4"), 0.9, "tri", 0.3, release=0.4))]
+    save("fanfare", mix(1.95, *parts))
+    save("rooster", mix(0.9, (0, tone(700, 0.12, "square", 0.25, sweep=900)), (0.14, tone(900, 0.12, "square", 0.25)),
+                        (0.28, tone(950, 0.5, "square", 0.25, sweep=700, vibrato=0.03, release=0.3))))
 
 
 def music():

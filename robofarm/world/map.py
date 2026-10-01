@@ -155,7 +155,9 @@ def build_map():
             occupied[y][x] = True
     for r, row in enumerate("АБВ"):
         for c in range(4):
-            m.beds[f"{row}{c + 1}"] = (52 + c * 3, 8 + r * 5)
+            bx, by = 52 + c * 3, 8 + r * 5
+            m.beds[f"{row}{c + 1}"] = (bx, by)
+            apply_autotile(_mask([(bx - 1, by - 1, bx + 1, by + 1)]), "bed_frame")
     fence_x0, fence_y0, fence_x1, fence_y1 = 49, 5, 64, 21
     for x in range(fence_x0, fence_x1 + 1):
         for y in (fence_y0, fence_y1):
@@ -261,6 +263,15 @@ def build_map():
     for x in range(30, 44, 3):
         obj("fair_bunting", x, 44, shadow=False)
 
+    # --- украшения из бабушкиного каталога (видны после покупки) ---
+    from robofarm.catalog import CATALOG
+    for d in CATALOG:
+        for sprite, tx, ty in d.objects:
+            obj(sprite, tx, ty, tag=d.flag)
+            occupy(tx - 1, ty - 1, tx, ty)
+        for glow, tx, ty in d.lights:
+            m.lights.append((glow, *tile_anchor(tx, ty), 1.0, d.flag))
+
     # --- лес по краю карты: дальний ряд светлее, ближний — плотный ---
     for x in range(0, W * TILE, 32):
         m.objects.append(WorldObject("forest_wall_far", x + 16, 2 * TILE - 2, shadow=False))
@@ -318,7 +329,24 @@ def build_map():
                Zone("post", "Почта и деревня", (45, 27, W - 1, H - 1), False, 5),
                Zone("fair", "Ярмарка", (19, 40, 44, H - 1), False, 7)]
     m.spots["bublik_home"] = (29 * TILE + 8, 14 * TILE + 12)
-    m.spots["field_home"] = (56 * TILE + 8, 21 * TILE + 4)
+    m.spots["field_home"] = (57 * TILE + 8, 19 * TILE + 12)
+    # где стоит Клуша, когда ведёт урок в зоне
+    m.spots["klusha_yard"] = m.spots["shed_door"]
+    m.spots["klusha_field"] = (53 * TILE + 8, 22 * TILE + 14)
+    m.spots["klusha_shop"] = (27 * TILE + 8, 37 * TILE + 12)
+    m.spots["klusha_barn"] = (19 * TILE + 8, 39 * TILE + 12)
+    m.spots["klusha_post"] = (49 * TILE + 8, 36 * TILE + 12)
+    m.spots["klusha_office"] = (13 * TILE + 8, 11 * TILE + 6)
+    m.spots["klusha_fair"] = (33 * TILE + 8, 49 * TILE + 4)
+    # куда робот подходит работать с файлами
+    m.spots["files_barn"] = (m.spots["cabinet"][0] + 16, m.spots["cabinet"][1] + 6)
+    m.spots["files_office"] = (m.spots["desk"][0] - 16, m.spots["desk"][1] + 6)
+    m.spots["files_post"] = (m.spots["post"][0] + 22, m.spots["post"][1] + 10)
+    m.spots["files_fair"] = (m.spots["fair"][0] - 22, m.spots["fair"][1] + 2)
+    # роботы на ярмарке (глава 7)
+    fx, fy = m.spots["fair"]
+    m.spots["fair_team"] = {"klusha": (fx - 22, fy + 2), "bublik": (fx - 40, fy + 10), "murzik": (fx + 22, fy + 4),
+                            "bobr": (fx + 40, fy + 10), "iskra": (fx - 58, fy + 4), "uhta": (fx + 58, fy + 4)}
     m.spots["klusha_home"] = m.spots["shed_door"]
     m.spots["camera_start"] = (29 * TILE, 11 * TILE)
     m.spots["zone_yard"] = (29 * TILE, 11 * TILE)

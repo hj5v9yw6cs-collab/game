@@ -1,7 +1,7 @@
 """Глава 1. «Сарай»: print, команды роботу, переменные, арифметика."""
 
 from robofarm.farm import make_bed
-from robofarm.lessons.base import Lesson, Quest, Step
+from robofarm.lessons.base import Chapter, Lesson, Quest, Step
 
 GARDEN = {"морковь": (26, 12), "тыква": (29, 12), "капуста": (32, 12)}
 
@@ -389,6 +389,9 @@ INTRO = [
 OUTRO = [
     ("klusha", "proud", "Глава 1 пройдена! Ты {научился|научилась} печатать, давать команды, пользоваться переменными и считать."),
     ("klusha", "happy", "Пока ты {учился|училась}, мы с Бубликом подлатали бабушкин дом. Видишь — окна светятся!"),
-    ("klusha", "explain", "Дальше нас ждёт поле на тридцать грядок. Писать тридцать команд мы не будем: "
+    ("klusha", "explain", "Дальше нас ждёт поле на двенадцать грядок. Писать двенадцать команд мы не будем: "
                           "научимся циклам. Это — в следующей главе."),
 ]
+
+CHAPTER = Chapter(number=1, title="Сарай", zone="yard", robot="bublik", lessons=LESSONS, intro=INTRO, outro=OUTRO,
+                  automation=("Бублик ухаживает за огородом", 5))

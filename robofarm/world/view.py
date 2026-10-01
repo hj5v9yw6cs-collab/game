@@ -9,7 +9,7 @@ from PySide6.QtGui import (QColor, QFont, QImage, QLinearGradient, QPainter, QPe
 from PySide6.QtWidgets import QWidget
 
 from robofarm.farm import bed_sprite, player_view
-from robofarm.world.entities import Particles, Robot
+from robofarm.world.entities import PEOPLE_SPRITES, Particles, Robot
 from robofarm.world.map import H, TILE, W, autotile_name, build_map
 
 SHADOW_K, SHADOW_SQUASH, SHADOW_OPACITY = 0.55, 0.38, 0.34
@@ -60,7 +60,12 @@ class WorldView(QWidget):
         self.flags = {"house_repaired": False, "shed_repaired": False, "shed_open": False}
         self.beds = {}
         self.robots = {}
+        self.people = {}            # покупатели и соседи: имя -> Robot (та же механика ходьбы)
+        self.price_tags = []        # ценники на прилавке лавки
+        self.extra_labels = []      # дополнительные подписи рентгена: (x, y, текст)
+        self.bed_view = player_view  # как грядка выглядит для программы (зависит от главы)
         self.active_robot = None
+        self._fog_fading = None
         self.particles = Particles()
         self.xray = False
         self.hover = None
@@ -94,6 +99,50 @@ class WorldView(QWidget):
 
     def set_beds(self, beds):
         self.beds = {b["name"]: dict(b) for b in beds}
+
+    def set_chapter(self, number, animate=False):
+        """Открывает зоны всех глав до number включительно; туман над новыми зонами рассеивается."""
+        changed = False
+        for z in self.map.zones:
+            is_open = z.chapter <= number
+            if z.open != is_open:
+                z.open = is_open
+                changed = True
+        if changed:
+            old = set(self._fog)
+            self._build_fog()
+            if animate:
+                self._fog_fading = (sorted(old - set(self._fog)), self.t)
+
+    def set_customers(self, queue):
+        """Очередь у лавки: каждый покупатель — словарь из данных урока."""
+        self.people = {}
+        spots = self.map.spots["queue"]
+        for i, c in enumerate(queue or []):
+            name = c.get("name", f"покупатель {i + 1}")
+            sprite = PEOPLE_SPRITES.get(name, f"villager_{i % 4 + 1}")
+            x, y = spots[i] if i < len(spots) else (spots[-1][0] + (i - len(spots) + 1) * 16, spots[-1][1])
+            person = Robot(sprite, x, y, "left")
+            person.name = name
+            person.data = c
+            self.people[name] = person
+
+    def serve_customer(self, name):
+        """Покупатель уходит, остальные подходят ближе к прилавку."""
+        person = self.people.get(name)
+        if not person or person.hidden:
+            return None
+        ex, ey = self.map.spots["queue_exit"]
+        person.walk_to(person.x, ey)
+        person.walk_to(ex, ey)
+        person.leaving = True
+        spots = self.map.spots["queue"]
+        waiting = [p for p in self.people.values() if not getattr(p, "leaving", False)]
+        for i, p in enumerate(waiting):
+            if i < len(spots):
+                p.walk_to(*spots[i])
+                p.play("idle", 0.01, facing="left")
+        return person
 
     def bed_center(self, name):
         tx, ty = self.map.beds[name]
@@ -144,7 +193,11 @@ class WorldView(QWidget):
                         p.drawImage(x * TILE, y * TILE, self._tile_frame(sid, i if (x, y) in water else 0))
             p.end()
             self._ground.append(img)
-        # туман над закрытыми зонами
+        self._build_fog()
+        self._build_shadows()
+
+    def _build_fog(self):
+        """Туман над закрытыми зонами."""
         closed = [[False] * W for _ in range(H)]
         for z in self.map.zones:
             if not z.open:
@@ -166,13 +219,16 @@ class WorldView(QWidget):
                     if name.endswith("_c") or "inner" in name:
                         name = "fog_cloud"
                     self._fog.append((name, x, y))
-        self._build_shadows()
 
     def _object_sprite(self, o):
         if o.tag == "house":
             return "house_grandma_repaired" if self.flags["house_repaired"] else "house_grandma_abandoned"
         if o.tag == "shed":
             return "shed_repaired" if self.flags["shed_repaired"] else "shed_abandoned"
+        if o.tag in ("stall", "barn", "post"):
+            return f"{o.tag}_repaired" if self.flags.get(f"{o.tag}_repaired") else f"{o.tag}_abandoned"
+        if o.tag.startswith("decor:"):
+            return o.sprite if self.flags.get(o.tag) else None
         return o.sprite
 
     def _silhouette(self, sid, frame_i, img):
@@ -195,6 +251,8 @@ class WorldView(QWidget):
             if not o.shadow:
                 continue
             sid = self._object_sprite(o)
+            if not sid:
+                continue
             spr = self.assets[sid]
             p.save()
             self._cast(p, sid, 0, spr.frames[0], spr.anchor[0], spr.anchor[1], o.x, o.y)
@@ -208,6 +266,10 @@ class WorldView(QWidget):
         self.t += dt
         for r in self.robots.values():
             r.update(dt)
+        for person in self.people.values():
+            person.update(dt)
+            if getattr(person, "leaving", False) and not person.busy():
+                person.hidden = True
         vx, vy, vw, vh = self._view_rect()
         self.particles.ambient(dt, (vx, vy, vw, vh))
         self.particles.update(dt)
@@ -261,6 +323,7 @@ class WorldView(QWidget):
         sp.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
         sp.drawImage(QRect(0, 0, vw * self.zoom, vh * self.zoom), frame)
         self._draw_canopies(sp)
+        self._draw_price_tags(sp)
         if self.xray:
             self._draw_xray(sp)
         if not self.xray:
@@ -280,7 +343,7 @@ class WorldView(QWidget):
             p.drawImage(tx * TILE, ty * TILE, self.assets[plot].frame())
 
     def _draw_dynamic_shadows(self, p):
-        for r in self.robots.values():
+        for r in list(self.robots.values()) + list(self.people.values()):
             if r.hidden:
                 continue
             sid = r.sprite_id(self.assets)
@@ -296,6 +359,8 @@ class WorldView(QWidget):
         t_ms = self.t * 1000
         for o in self.map.objects:
             sid = self._object_sprite(o)
+            if not sid:
+                continue
             spr = self.assets[sid]
             if o.x + spr.size[0] < vx or o.x - spr.size[0] > vx + vw or o.y - spr.size[1] > vy + vh or o.y + 8 < vy:
                 continue
@@ -305,7 +370,7 @@ class WorldView(QWidget):
             if sid and name in self.map.beds:
                 tx, ty = self.map.beds[name]
                 items.append((ty * TILE + 12, 1, sid, tx * TILE + 8, ty * TILE + 12, 0))
-        for r in self.robots.values():
+        for r in list(self.robots.values()) + list(self.people.values()):
             if not r.hidden:
                 items.append((r.y, 2, r, r.x, r.y, 0))
         items.sort(key=lambda it: (it[0], it[1]))
@@ -370,11 +435,22 @@ class WorldView(QWidget):
     def _draw_fog(self, p, view):
         vx, vy, vw, vh = view
         t_ms = self.t * 1000
-        for sid, x, y in self._fog:
-            px, py = x * TILE, y * TILE
-            if px + TILE < vx or px > vx + vw or py + TILE < vy or py > vy + vh:
-                continue
-            p.drawImage(px, py, self.assets[sid].frame(t_ms + (x * 7 + y * 13) * 50))
+        layers = [(self._fog, 1.0)]
+        if self._fog_fading:
+            tiles, t0 = self._fog_fading
+            k = (self.t - t0) / 2.5
+            if k >= 1:
+                self._fog_fading = None
+            else:
+                layers.append((tiles, 1.0 - k))
+        for tiles, alpha in layers:
+            p.setOpacity(alpha)
+            for sid, x, y in tiles:
+                px, py = x * TILE, y * TILE
+                if px + TILE < vx or px > vx + vw or py + TILE < vy or py > vy + vh:
+                    continue
+                p.drawImage(px, py - (1 - alpha) * 10, self.assets[sid].frame(t_ms + (x * 7 + y * 13) * 50))
+        p.setOpacity(1.0)
 
     def _draw_lighting(self, p, view):
         vx, vy, vw, vh = view
@@ -415,7 +491,9 @@ class WorldView(QWidget):
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Screen)
         flicker = 0.85 + 0.15 * math.sin(self.t * 7.3)
         p.setOpacity(0.55 * flicker)
-        for sid, x, y, strength in self.map.lights:
+        for sid, x, y, strength, *tag in self.map.lights:
+            if tag and not self.flags.get(tag[0]):
+                continue
             spr = self.assets[sid]
             p.drawImage(int(x - spr.anchor[0]), int(y - 22 - spr.anchor[1]) if sid == "glow_lantern" else int(y - 6 - spr.anchor[1]), spr.frame())
         if self.flags["house_repaired"]:
@@ -462,6 +540,26 @@ class WorldView(QWidget):
             for i, line in enumerate(lines):
                 sp.drawText(QPointF(rect.x() + 14, rect.y() + 9 + fm.ascent() + i * fm.height()), line)
 
+    def _draw_price_tags(self, sp):
+        """Ценники, которые Мурзик повесил командой tag(): деревянные таблички слева от прилавка."""
+        if not self.price_tags:
+            return
+        sx, sy = self.map.spots["stall"]
+        anchor = self.world_to_screen(sx - 44, sy - 30)
+        sp.setFont(self.font_ui_bold)
+        fm = sp.fontMetrics()
+        tags = self.price_tags[-6:]
+        y = anchor.y() - (len(tags) - 1) * (fm.height() + 14)
+        ui = self.assets.colors["ui"]
+        for text in tags:
+            text = fm.elidedText(text, Qt.TextElideMode.ElideRight, 260)
+            w = fm.horizontalAdvance(text) + 28
+            rect = QRectF(anchor.x() - w, y, w, fm.height() + 10)
+            draw_nine(sp, self.assets, "ui_tooltip", rect)
+            sp.setPen(QColor(ui["text"]))
+            sp.drawText(QPointF(rect.x() + 14, rect.y() + 5 + fm.ascent()), text)
+            y += fm.height() + 14
+
     def _draw_float_texts(self, sp):
         sp.setFont(self.font_ui)
         for pt in self.particles.items:
@@ -479,13 +577,24 @@ class WorldView(QWidget):
         for name, bed in self.beds.items():
             if name in self.map.beds:
                 cx, cy = self.bed_center(name)
-                view = player_view(bed)
+                view = self.bed_view(bed)
                 items = [f'"{k}": {self._py(v)}' for k, v in view.items()]
                 text = "{" + ",\n ".join(items) + "}"
                 labels.append((cx, cy - 6, text))
+        waiting = [p for p in self.people.values() if not p.hidden]
+        if waiting:
+            rows = []
+            for person in waiting[:6]:
+                data = getattr(person, "data", {}) or {}
+                rows.append(" {" + ", ".join(f'"{k}": {self._py(v)}' for k, v in data.items()) + "}")
+            if len(waiting) > 6:
+                rows.append(f" ... ещё {len(waiting) - 6}")
+            first = waiting[0]
+            labels.append((first.x + 30, first.y - 26, "queue = [\n" + ",\n".join(rows) + "\n]"))
         for r in self.robots.values():
             if not r.hidden:
                 labels.append((r.x, r.y - 16, f'робот = "{r.name}"'))
+        labels += self.extra_labels
         return labels
 
     @staticmethod
@@ -572,6 +681,12 @@ class WorldView(QWidget):
             if not r.hidden and abs(wx - r.x) <= 9 and r.y - 16 <= wy <= r.y + 2:
                 return {"kind": "robot", "id": r.id, "title": f"{r.name} — робот",
                         "lines": ["Нажми, чтобы открыть его скрипт"]}
+        for person in self.people.values():
+            if not person.hidden and abs(wx - person.x) <= 7 and person.y - 26 <= wy <= person.y + 2:
+                data = getattr(person, "data", {}) or {}
+                lines = [f"{k}: {v}" for k, v in data.items() if k != "name"]
+                return {"kind": "person", "id": person.name, "title": f"{person.name} — покупатель",
+                        "lines": lines or ["Ждёт своей очереди"]}
         for name, (tx, ty) in self.map.beds.items():
             if tx * TILE <= wx < tx * TILE + TILE and ty * TILE <= wy < ty * TILE + TILE and name in self.beds:
                 bed = self.beds[name]
@@ -581,9 +696,10 @@ class WorldView(QWidget):
                                   f"Урожай: {state}"],
                         "code": f'"{name}"'}
         for o in self.map.objects:
-            if not o.info:
+            sid = self._object_sprite(o)
+            if not o.info or not sid:
                 continue
-            spr = self.assets[self._object_sprite(o)]
+            spr = self.assets[sid]
             if o.x - spr.anchor[0] <= wx < o.x - spr.anchor[0] + spr.size[0] and o.y - spr.anchor[1] <= wy <= o.y:
                 return {"kind": "object", "title": o.info["title"], "lines": [o.info["text"]]}
         return None

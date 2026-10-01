@@ -28,7 +28,7 @@ def make_bed(name, crop, x, y, humidity=60, stage="ripe", kg=None):
 def player_view(bed):
     """Как грядку видит игрок: в рентгене, в карточке при наведении и в переменной «поле»."""
     return {
-        "грядка": bed["name"],
+        "название": bed["name"],
         "влажность": bed["humidity"],
         "спелая": bed["stage"] == "ripe",
     }
@@ -59,7 +59,7 @@ class FarmSim:
 
     def find(self, bed, command):
         if isinstance(bed, dict):
-            name = bed.get("грядка", bed.get("name"))
+            name = bed.get("название", bed.get("name"))
         else:
             name = bed
         if not isinstance(name, str):
@@ -197,9 +197,11 @@ class PostSim:
 
 
 def player_view_en(bed):
-    return {"bed": bed["name"], "crop": bed["crop"], "humidity": bed["humidity"], "ripe": bed["stage"] == "ripe"}
+    """Грядка в переменной field (с главы 3, английские названия)."""
+    return {"name": bed["name"], "crop": bed["crop"], "humidity": bed["humidity"], "ripe": bed["stage"] == "ripe"}
 
 
 def player_view_ru(bed):
-    return {"грядка": bed["name"], "культура": bed["crop"], "влажность": bed["humidity"],
+    """Грядка в переменной поле (глава 2)."""
+    return {"название": bed["name"], "культура": bed["crop"], "влажность": bed["humidity"],
             "спелая": bed["stage"] == "ripe"}

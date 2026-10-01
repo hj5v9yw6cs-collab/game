@@ -15,8 +15,8 @@ KEYWORDS = {"for", "in", "if", "elif", "else", "while", "def", "return", "import
             "not", "True", "False", "None", "break", "continue", "pass", "with", "try", "except", "class",
             "lambda", "is", "global"}
 BUILTINS = {"print", "len", "range", "int", "str", "float", "list", "dict", "sum", "max", "min", "sorted",
-            "round", "abs", "input", "open", "enumerate", "type", "bool"}
-ROBOT_COMMANDS = {"полить", "собрать", "water", "harvest"}
+            "round", "abs", "input", "open", "enumerate", "type", "bool", "set", "zip", "isinstance"}
+ROBOT_COMMANDS = {"полить", "собрать", "water", "harvest", "sell", "tag", "deliver"}
 
 TRANSLATIONS = {
     "print": "print — «напечатать»: показать текст или значение",
@@ -38,8 +38,52 @@ TRANSLATIONS = {
     "range": "range — «диапазон»: числа по порядку",
     "int": "int — «целое число»",
     "str": "str — «строка», текст",
+    "float": "float — «дробное число»: 2.5",
+    "sum": "sum — «сумма» всех чисел списка",
+    "max": "max — «самое большое»",
+    "min": "min — «самое маленькое»",
+    "sorted": "sorted — «отсортированный»: новый список по порядку",
+    "round": "round — «округлить»",
+    "open": "open — «открыть» файл",
+    "with": "with — «с»: открыть файл и сам закрыть его в конце блока",
+    "as": "as — «как»: под каким именем",
+    "import": "import — «подключить» модуль (готовый набор команд)",
+    "from": "from — «из»: из какого модуля взять",
+    "try": "try — «попробовать»: выполнить, а при ошибке не падать",
+    "except": "except — «кроме», «на случай ошибки»: что делать, если случилась ошибка",
+    "enumerate": "enumerate — «пронумеровать»: даёт номер и элемент",
+    "break": "break — «прервать» цикл",
+    "continue": "continue — «продолжить»: сразу к следующему кругу цикла",
+    "pass": "pass — «ничего не делать»",
+    "dict": "dict — «словарь»: ключ → значение",
+    "list": "list — «список»",
     "полить": "полить(грядка) — робот поливает грядку",
     "собрать": "собрать(грядка) — робот собирает урожай и возвращает килограммы",
+    "water": "water(bed) — полить грядку",
+    "harvest": "harvest(bed) — собрать урожай, возвращает килограммы",
+    "sell": "sell(customer, total) — Мурзик продаёт покупателю на сумму total",
+    "tag": "tag(text) — Мурзик вешает ценник с текстом на прилавок",
+    "deliver": "deliver(id) — Искра отвозит заказ с этим номером",
+    "field": "field — «поле»: список грядок",
+    "bed": "bed — «грядка»",
+    "price": "price — «цена»",
+    "prices": "prices — «цены»",
+    "total": "total — «итого», сумма",
+    "customer": "customer — «покупатель»",
+    "queue": "queue — «очередь»: список покупателей",
+    "item": "item — «товар», «предмет»",
+    "order": "order — «заказ»",
+    "orders": "orders — «заказы»",
+    "line": "line — «строка»",
+    "row": "row — «строка таблицы»",
+    "text": "text — «текст»",
+    "name": "name — «имя», «название»",
+    "count": "count — «количество», «счётчик»",
+    "path": "path — «путь» к файлу или папке",
+    "folder": "folder — «папка»",
+    "report": "report — «отчёт»",
+    "stock": "stock — «запас», остатки на складе",
+    "weather": "weather — «погода»",
 }
 
 TOKEN_RE = re.compile(
