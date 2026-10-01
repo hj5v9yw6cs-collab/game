@@ -252,19 +252,22 @@ class Replay(QObject):
         short = path.rstrip("/").split("/")[-1] or path
         op = ev["op"]
         if op == "read":
-            label, anim, sound = f"читает {short}", "read", "paper"
+            label, anims, sound = f"читает {short}", ("read", "scan"), "paper"
         elif op == "write":
-            label, anim, sound = f"пишет {short}", "write", "write"
+            label, anims, sound = f"пишет {short}", ("write", "stamp", "stack", "scan"), "write"
         elif op == "move":
             to = (ev.get("to") or "").rstrip("/")
             folder = to.rsplit("/", 1)[0] + "/" if "/" in to else ""
             new = to.split("/")[-1]
             label = f"{short} → {folder}{new if new != short else ''}"
-            anim, sound = "sort", "paper"
+            anims, sound = ("sort", "carry", "stack"), "paper"
         elif op == "mkdir":
-            label, anim, sound = f"новая папка {short}", "stamp", "tag"
+            label, anims, sound = f"новая папка {short}", ("stamp", "stack", "scan"), "tag"
         else:
-            label, anim, sound = f"удалён {short}", "stamp", "paper"
+            label, anims, sound = f"удалён {short}", ("stamp", "scan"), "paper"
+        assets = world.assets
+        anim = next((a for a in anims if assets.get(f"{robot.id}_{a}_left") or assets.get(f"{robot.id}_{a}")),
+                    "happy")
         ext = "." + short.rsplit(".", 1)[-1].lower() if "." in short else ""
         icon = "folder_open" if op == "mkdir" else self.FILE_ICONS.get(ext, "file_txt")
 

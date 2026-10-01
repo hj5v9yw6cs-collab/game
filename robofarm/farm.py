@@ -118,9 +118,7 @@ class FarmSim:
         en = {"water": water, "harvest": harvest}
         if lang == "ru":
             return ru
-        if lang == "en":
-            return en
-        return {**ru, **en}
+        return {**ru, **en}  # с главы 3 имена английские, но старые русские команды продолжают работать
 
 
 class ShopSim:
@@ -185,9 +183,12 @@ class PostSim:
             raise ValueError(f"Заказа №{order_id} нет. Есть заказы: {known}. "
                              "deliver() ждёт номер заказа: deliver(order[\"id\"]).")
         o = self.orders[order_id]
+        if order_id in self.delivered:
+            raise ValueError(f"Заказ №{order_id} уже доставлен — второй раз везти не нужно.")
         self.delivered.append(order_id)
-        self.record({"k": "act", "cmd": "deliver", "id": order_id, "house": o.get("house", 1),
-                     "who": o.get("customer", {}).get("name", ""), "ok": True})
+        customer = o.get("customer", {})
+        self.record({"k": "act", "cmd": "deliver", "id": order_id, "house": o.get("house", customer.get("house", 1)),
+                     "who": customer.get("name", ""), "ok": True})
 
     def commands(self):
         def deliver(order_id):

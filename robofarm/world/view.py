@@ -545,16 +545,16 @@ class WorldView(QWidget):
         if not self.price_tags:
             return
         sx, sy = self.map.spots["stall"]
-        anchor = self.world_to_screen(sx - 44, sy - 30)
+        anchor = self.world_to_screen(sx, sy - 52)
         sp.setFont(self.font_ui_bold)
         fm = sp.fontMetrics()
-        tags = self.price_tags[-6:]
-        y = anchor.y() - (len(tags) - 1) * (fm.height() + 14)
+        tags = self.price_tags[-5:]
+        y = anchor.y() - len(tags) * (fm.height() + 14)
         ui = self.assets.colors["ui"]
         for text in tags:
-            text = fm.elidedText(text, Qt.TextElideMode.ElideRight, 260)
+            text = fm.elidedText(text, Qt.TextElideMode.ElideRight, 320)
             w = fm.horizontalAdvance(text) + 28
-            rect = QRectF(anchor.x() - w, y, w, fm.height() + 10)
+            rect = QRectF(anchor.x() - w / 2, y, w, fm.height() + 10)
             draw_nine(sp, self.assets, "ui_tooltip", rect)
             sp.setPen(QColor(ui["text"]))
             sp.drawText(QPointF(rect.x() + 14, rect.y() + 5 + fm.ascent()), text)

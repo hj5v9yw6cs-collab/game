@@ -21,6 +21,29 @@ SOLUTIONS = {
     "if:5": 'for грядка in поле:\n    if грядка["влажность"] == 100:\n        print(грядка["название"])',
     "andor:3": 'сухих = 0\nfor грядка in поле:\n    if грядка["влажность"] < 40:\n        сухих = сухих + 1\nprint("Сухих грядок:", сухих)',
     "andor:4": 'for грядка in поле:\n    if грядка["культура"] == "морковь" or грядка["культура"] == "капуста":\n        print(грядка["название"])',
+    # глава 3
+    "english:2": 'for bed in field:\n    if bed["ripe"]:\n        harvest(bed)',
+    "english:3": 'for bed in field:\n    if bed["humidity"] < 40:\n        water(bed)',
+    "english:4": 'for bed in field:\n    if bed["crop"] == "тыква":\n        print(bed["name"])',
+    "strings:3": 'item = "капуста"\nprice = 20\ntag(f"{item}: {price} руб/кг")',
+    "strings:4": 'item = "морковь"\nprice = 50\ntag(f"{item}: {price} руб/кг")',
+    "strings:6": 'name = "Валя"\nkg = 3\nprice = 30\nprint(f"{name}, с вас {kg * price} руб.")',
+    "dicts:2": 'prices = {"морковь": 50, "тыква": 30, "капуста": 20}\nprint(prices["капуста"])',
+    "dicts:3": 'prices = {"морковь": 50, "тыква": 30, "капуста": 20}\nprint(prices["тыква"])',
+    "dicts:6": 'customer = queue[0]\ntotal = customer["kg"] * prices[customer["item"]]\nsell(customer, total)',
+    "functions:3": "def with_discount(price):\n    return price * 0.9\n\nprint(with_discount(100))",
+    "functions:4": "def total_price(kg, price):\n    return kg * price\n\nprint(total_price(2, 50))",
+    "functions:5": 'def receipt(name, total):\n    return f"{name}: {total} руб."',
+    # глава 4
+    "files:5": 'total = 0\nwith open("остатки.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg = line.strip().split(": ")\n        total = total + int(kg)\nprint("Всего на складе:", total, "кг")',
+    "files:6": 'total = 0\nwith open("остатки.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg = line.strip().split(": ")\n        total = total + int(kg)\nprint("Всего на складе:", total, "кг")',
+    "csv:3": 'import csv\n\ntotal = 0\nwith open("продажи.csv", encoding="utf-8") as f:\n    for row in csv.DictReader(f):\n        total = total + int(row["кг"]) * int(row["цена"])\nprint("Выручка:", total, "руб.")',
+    "csv:4": 'import csv\n\ntotal = 0\nwith open("продажи.csv", encoding="utf-8") as f:\n    for row in csv.DictReader(f):\n        total = total + int(row["кг"]) * int(row["цена"])\nprint("Выручка:", total, "руб.")',
+    "csv:5": 'import csv\n\npumpkin = 0\nwith open("продажи.csv", encoding="utf-8") as f:\n    for row in csv.DictReader(f):\n        if row["товар"] == "тыква":\n            pumpkin = pumpkin + int(row["кг"]) * int(row["цена"])\nprint("Тыква:", pumpkin, "руб.")',
+    "errors:3": 'total = 0\nwith open("касса.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg, price = line.strip().split(",")\n        try:\n            total = total + int(kg) * int(price)\n        except ValueError:\n            print("Пропускаю:", line.strip())\nprint("Выручка:", total)',
+    "errors:4": 'total = 0\nbad = 0\nwith open("касса.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg, price = line.strip().split(",")\n        try:\n            total = total + int(kg) * int(price)\n        except ValueError:\n            bad = bad + 1\nprint("Плохих строк:", bad)',
+    "write:2": 'stock = {"морковь": 40, "тыква": 12}\nwith open("заказ.txt", "w", encoding="utf-8") as f:\n    for item, kg in stock.items():\n        f.write(f"{item}: {kg} кг\\n")',
+    "write:5": 'import csv\n\nwith open("остатки.txt", encoding="utf-8") as f:\n    lines = f.readlines()\n\nwith open("склад.csv", "w", encoding="utf-8-sig", newline="") as f:\n    writer = csv.writer(f, delimiter=";")\n    writer.writerow(["товар", "кг"])\n    for line in lines:\n        item, kg = line.strip().split(": ")\n        writer.writerow([item, kg])',
 }
 
 # Типичные ошибки новичков: проверка должна их не пропустить
@@ -50,6 +73,37 @@ WRONG = {
                 'print("Сухих грядок:", 5)'],
     "andor:4": ['for грядка in поле:\n    print(грядка["название"])',
                 'for грядка in поле:\n    if грядка["культура"] == "морковь":\n        print(грядка["название"])'],
+    # глава 4
+    "files:5": ['print("Всего на складе:", 115, "кг")'],
+    "files:quest": ['print("тыква: 12 кг — заказать!")\nprint("яблоки: 8 кг — заказать!")\nprint(115)',
+                    'total = 0\nwith open("остатки.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg = line.strip().split(": ")\n        kg = int(kg)\n        total = total + kg\n        print(f"{item}: {kg} кг — заказать!")\nprint(total)'],
+    "csv:3": ['print("Выручка:", 2150)'],
+    "csv:quest": ['import csv\n\ntotal = 0\nwith open("продажи.csv", encoding="utf-8") as f:\n    for row in csv.DictReader(f):\n        total += int(row["кг"]) * int(row["цена"])\n        print(row["товар"], total)'],
+    "errors:3": ['print("Выручка:", 440)'],
+    "errors:quest": ['total = 0\nwith open("касса.txt", encoding="utf-8") as f:\n    for line in f:\n        item, kg, price = line.strip().split(",")\n        try:\n            total = total + int(kg) * int(price)\n        except ValueError:\n            print("Ошибка в строке:", line.strip())\nprint(total)'],
+    "write:2": ['stock = {"морковь": 40, "тыква": 12}\nwith open("заказ.txt", "w", encoding="utf-8") as f:\n    for item, kg in stock.items():\n        f.write(f"{item}: {kg} кг")'],
+    "write:quest": ['import csv\n\ntotals = {}\nwith open("продажи.csv", encoding="utf-8") as f:\n    for row in csv.DictReader(f):\n        totals[row["товар"]] = totals.get(row["товар"], 0) + int(row["кг"]) * int(row["цена"])\nwith open("отчёт.csv", "w", encoding="utf-8", newline="") as f:\n    writer = csv.writer(f)\n    writer.writerow(["товар", "выручка"])\n    for item, money in totals.items():\n        writer.writerow([item, money])'],
+    # глава 3
+    "english:quest": ['total = 0\nfor грядка in field:\n    if грядка["humidity"] < 40:\n        water(грядка)\n'
+                      '    if грядка["ripe"]:\n        total = total + harvest(грядка)\nprint(total)',
+                      'for bed in field:\n    water(bed)\n    harvest(bed)\nprint(38)'],
+    "english:4": ['for bed in field:\n    print(bed["name"])'],
+    "strings:3": ['item = "капуста"\nprice = 20\ntag(f"{item}: {item} руб/кг")', 'tag("капуста: 20 руб/кг")\nprint()'],
+    "strings:6": ['name = "Валя"\nkg = 3\nprice = 30\nprint(f"{name}, с вас 90 руб.")',
+                  'name = "Валя"\nkg = 3\nprice = 30\nprint("{name}, с вас {kg * price} руб.")'],
+    "strings:quest": ['tag("Тыква: 30 руб/кг")\nprint("Михалыч, тыква сегодня по 30 руб/кг!")\nprint("Даша, тыква сегодня по 30 руб/кг!")\nprint("Петя, тыква сегодня по 30 руб/кг!")',
+                      'tag(f"{item}: {price} руб/кг")\nfor name in customers:\n    print(f"{name}, {item} сегодня по {price} руб/кг!")'],
+    "dicts:2": ['prices = {"морковь": 50, "тыква": 30, "капуста": 20}\nprint(20)'],
+    "dicts:6": ['customer = queue[0]\nsell(customer, 90)', 'customer = queue[0]\nsell(customer, customer["kg"] * 30)'],
+    "dicts:quest": ['for customer in queue:\n    sell(customer, customer["kg"] * prices[customer["item"]])',
+                    'customer = queue[0]\ntotal = customer["kg"] * prices[customer["item"]]\nsell(customer, total)\nprint(customer["name"], total)'],
+    "functions:3": ["def with_discount(price):\n    print(price * 0.9)\n\nwith_discount(100)",
+                    "def with_discount(price):\n    return price * 0.1"],
+    "functions:5": ['def receipt(name, total):\n    print(f"{name}: {total} руб.")'],
+    "functions:quest": ['def total_for(customer, prices):\n    return customer["kg"] * prices[customer["item"]]\n\n'
+                        'for customer in queue:\n    sell(customer, total_for(customer, prices))',
+                        'def total_for(customer, prices):\n    total = customer["kg"] * prices[customer["item"]] * 0.9\n    return total\n\n'
+                        'for customer in queue:\n    sell(customer, total_for(customer, prices))'],
     "andor:quest": ['всего = 0\nтыквы = 0\nfor грядка in поле:\n    if грядка["спелая"]:\n        всего = всего + собрать(грядка)\nprint(всего)\nprint(всего)',
                     'print(38)\nprint(18)'],
 }

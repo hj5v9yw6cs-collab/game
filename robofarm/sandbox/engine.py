@@ -50,7 +50,32 @@ def snap(value, depth=0):
     if isinstance(value, dict) and depth < 2:
         return {"t": "dict", "len": len(value),
                 "items": [[repr(k)[:30], snap(v, depth + 1)] for k, v in list(value.items())[:10]]}
-    return {"t": "other", "type": type(value).__name__, "v": repr(value)[:80]}
+    return {"t": "other", "type": type(value).__name__, "v": describe_object(value)[:80]}
+
+
+def describe_object(value):
+    """Понятная подпись для «Памяти» вместо <_io.TextIOWrapper …>."""
+    import datetime
+    import pathlib
+    if isinstance(value, pathlib.PurePath):
+        return f"путь «{value.as_posix()}»"
+    if isinstance(value, io.IOBase) and hasattr(value, "name"):
+        state = "закрыт" if value.closed else "открыт"
+        return f"файл «{value.name}» ({state})"
+    if isinstance(value, datetime.datetime):
+        return f"дата и время {value.isoformat(sep=' ', timespec='minutes')}"
+    if isinstance(value, datetime.date):
+        return f"дата {value.isoformat()}"
+    if isinstance(value, datetime.timedelta):
+        return f"промежуток {value.days} дн."
+    if isinstance(value, (set, frozenset)):
+        return "{" + ", ".join(repr(v) for v in list(value)[:6]) + ("…}" if len(value) > 6 else "}")
+    name = type(value).__name__
+    if name == "DictReader":
+        return "читатель таблицы (csv.DictReader)"
+    if name == "writer" or name == "_writer":
+        return "писатель таблицы (csv.writer)"
+    return repr(value)
 
 
 def plain(value, depth=0):

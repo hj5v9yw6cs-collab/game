@@ -10,6 +10,8 @@ from robofarm.ui.fonts import code_font, ui_font
 from robofarm.ui.pixel import draw_nine, draw_sprite
 
 VALUE_COLORS = {"num": "#fde07a", "str": "#a8e08a", "other": "#f3e6cf"}
+# значения в ящиках шкафа-словаря: тёмные, чтобы читались на светлом дереве
+DRAWER_COLORS = {"num": "#8e1f4a", "str": "#24601a", "bool": "#2a3f7a", "none": "#5a4a4a"}
 
 
 def value_text(s, limit=18):
@@ -160,7 +162,7 @@ class MemoryView(QWidget):
                 p.setPen(QColor("#3d2318"))
                 p.drawText(QPointF(drawer.x() + 10, drawer.y() + 13 + vfm.ascent() / 2 - 2), f"{k} →")
                 kx = drawer.x() + 16 + vfm.horizontalAdvance(f"{k} →")
-                p.setPen(QColor(VALUE_COLORS.get(v["t"], "#3d2318")).darker(180))
+                p.setPen(QColor(DRAWER_COLORS.get(v["t"], "#3d2318")))
                 p.drawText(QPointF(kx, drawer.y() + 13 + vfm.ascent() / 2 - 2), value_text(v, 12))
         else:
             self._value(p, s, value_text(s), body)

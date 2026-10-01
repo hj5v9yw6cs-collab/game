@@ -783,7 +783,7 @@ class GameWindow(QMainWindow):
             self.goto_step(li, 0)
             return
         self._set_play_ui(False)
-        self.world.center_on(*self._focus_point(ch.lessons[0]))
+        self.world.center_on(*self.world.map.spots[f"zone_{ch.zone}"])
         play("zone_open")
         Toast(self.assets, self.world, f"Открыта зона: {ZONE_NAMES.get(ch.zone, ch.title)}", "icon_map", 3.5)
         robot = self.world.robots.get(ch.robot)
