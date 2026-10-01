@@ -315,9 +315,8 @@ class GameWindow(QMainWindow):
             q = lesson.quest
             self.world.set_beds(lesson.beds)
             self.lesson_win.set_step(lesson.title, si, len(steps), "quest",
-                                     "Время настоящего задания! Прочитай записку и напиши программу сама… "
-                                     if False else "Время настоящего задания! Прочитай записку и напиши программу.",
-                                     "proud", quest=q)
+                                     "Время настоящего задания! Прочитай записку и напиши программу. "
+                                     "Если застрянешь — нажми «Подсказка».", "proud", quest=q)
             code = self.save["codes"].get(self.step_key(), q.starter)
             editor.setPlainText(code)
             fails = self.save["attempts"].get(self.step_key(), 0)
@@ -373,7 +372,7 @@ class GameWindow(QMainWindow):
     def on_solution(self):
         q = self.lesson().quest
         text = ("Вот одно из возможных решений. Разберись, почему оно работает, — "
-                "а потом попробуй написать похожее сам{|а}.")
+                "а потом попробуй написать похожее {сам|сама}.")
         w = InfoWindow(self.assets, "Решение", "icon_info", md(self.g(text)),
                        [("Закрыть", "icon_close", "wood", self._close_modal),
                         ("Вставить в редактор", "icon_copy", "primary", self._paste_solution)], code=q.solution)

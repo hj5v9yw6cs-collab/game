@@ -1,8 +1,12 @@
 name: Сборка для Mac
 
+# Сборка на Mac расходует минуты GitHub Actions в 10 раз быстрее обычной,
+# поэтому она запускается кнопкой «Run workflow», при обновлении main и для версий v*.
 on:
-  push:
   workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["v*"]
 
 jobs:
   build-mac:
