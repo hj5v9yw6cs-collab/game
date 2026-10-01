@@ -47,6 +47,7 @@ class Assets:
         lut[transparent] = b"\x00\x00\x00\x00"
 
         raw = {s["id"]: s for s in self.data["sprites"]}
+        self.raw = raw
         self.sprites = {}
         for sid, s in raw.items():
             if s.get("frames"):
@@ -77,6 +78,10 @@ class Assets:
 
     def get(self, sid):
         return self.sprites.get(sid)
+
+    def data_sprite(self, sid):
+        """Исходное описание спрайта из JSON (точки крепления attach, заметки)."""
+        return self.raw.get(sid, {})
 
     def color(self, name):
         r, g, b, a = self.palette[self.palette_names.get(name, name)]
