@@ -154,3 +154,15 @@ for li in range(start, len(LESSONS)):
         w.world.xray = False
 
 print("coins", w.save["coins"], "done", len(w.save["done"]), "of", len(LESSONS), "flags", w.save["flags"])
+
+skip_dialogs()
+w._close_modal()
+w.save["coins"] += 100
+w.show_lessons()
+shot("zz_lessons")
+w._close_modal()
+w.show_catalog()
+shot("zz_catalog")
+w._buy("lanterns")
+wait(2800)
+shot("zz_bought")

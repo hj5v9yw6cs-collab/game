@@ -351,9 +351,9 @@ def build_map():
     m.spots["camera_start"] = (29 * TILE, 11 * TILE)
     m.spots["zone_yard"] = (29 * TILE, 11 * TILE)
     m.spots["zone_field"] = (56 * TILE, 13 * TILE)
-    m.spots["zone_shop"] = (31 * TILE, 33 * TILE)
+    m.spots["zone_shop"] = (32 * TILE, 34 * TILE)
     m.spots["zone_barn"] = (12 * TILE, 35 * TILE)
-    m.spots["zone_post"] = (62 * TILE, 37 * TILE)
+    m.spots["zone_post"] = (57 * TILE, 36 * TILE)
     m.spots["zone_office"] = (14 * TILE, 8 * TILE)
     m.spots["zone_fair"] = (36 * TILE, 44 * TILE)
     return m

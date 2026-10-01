@@ -27,12 +27,21 @@ jobs:
       - name: Иконка
         run: QT_QPA_PLATFORM=offscreen python tools/make_icon.py build/icon.png
 
+      # Код игрока выполняется Python-ом внутри .app, поэтому модули, которые изучаются в уроках
+      # (и популярные модули стандартной библиотеки), должны попасть в сборку, даже если игра их не импортирует.
       - name: Сборка Robofarm.app
         run: |
+          HIDDEN=""
+          for m in csv json datetime calendar collections pathlib glob shutil math statistics random re \
+                   itertools functools string decimal fractions textwrap time zipfile difflib pprint \
+                   urllib.request urllib.parse html; do
+            HIDDEN="$HIDDEN --hidden-import $m"
+          done
           pyinstaller --noconfirm --windowed --name Robofarm \
             --osx-bundle-identifier com.robofarm.game \
             --icon build/icon.png \
             --add-data "robofarm/data:robofarm/data" \
+            $HIDDEN \
             main.py
           /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Робоферма" dist/Robofarm.app/Contents/Info.plist || true
           codesign --force --deep --sign - dist/Robofarm.app
@@ -40,6 +49,8 @@ jobs:
       - name: Проверка, что песочница запускается внутри .app
         run: |
           echo '{"code": "print(2 + 2)", "beds": []}' | dist/Robofarm.app/Contents/MacOS/Robofarm --sandbox | grep '"stdout": "4\\n"'
+          echo '{"code": "import csv, json, datetime, pathlib, collections, statistics\nprint(\"ok\")", "beds": []}' \
+            | dist/Robofarm.app/Contents/MacOS/Robofarm --sandbox | grep '"stdout": "ok\\n"'
 
       - name: Упаковка
         run: cd dist && ditto -c -k --keepParent Robofarm.app Robofarm-mac.zip

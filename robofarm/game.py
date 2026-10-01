@@ -625,7 +625,7 @@ class GameWindow(QMainWindow):
             err = r.error
             if run_step and st.expect_error:
                 self.step_passed = True
-                text = err["hint"] + ("<br><br>" + md(self.g(st.after)) if st.after else "")
+                text = err["hint"] + ("\n\n" + st.after if st.after else "")
                 self.lesson_win.show_feedback("error", err["title"], text, trace=err["trace"], portrait="explain")
                 self.lesson_win.set_buttons("Дальше", "icon_arrow_right", back=self.save["step"] > 0)
                 return
