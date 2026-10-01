@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter, QRadialGradient, QLinearGradient
+from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter, QRadialGradient, QLinearGradient, QTransform
 
 from robofarm.assets import Assets
 
@@ -36,6 +36,30 @@ AUTUMN_GROUND = {
 
 TILE = 16
 W, H = 30, 17
+
+
+def silhouette(img, color=QColor(38, 14, 44)):
+    sil = QImage(img.size(), QImage.Format.Format_ARGB32_Premultiplied)
+    sil.fill(0)
+    sp = QPainter(sil)
+    sp.drawImage(0, 0, img)
+    sp.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+    sp.fillRect(sil.rect(), color)
+    sp.end()
+    return sil
+
+
+def cast_shadows(size, items, k=0.55, squash=0.38):
+    """Тени от низкого осеннего солнца сверху-слева: силуэт ложится на землю вправо-вниз.
+    items — список (image, anchor_x, anchor_y, world_x, world_y)."""
+    layer = QImage(size[0], size[1], QImage.Format.Format_ARGB32_Premultiplied)
+    layer.fill(0)
+    lp = QPainter(layer)
+    for img, ax, ay, x, y in items:
+        lp.setTransform(QTransform(1, 0, -k, -squash, x - ax + k * ay, y + squash * ay))
+        lp.drawImage(0, 0, silhouette(img))
+    lp.end()
+    return layer
 
 
 def autotile(mask, x, y, kind):
@@ -147,9 +171,23 @@ def render(mode, out):
 
     if cozy:
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(40, 20, 50, 70))
-        for bx, by, bw in [(4 * TILE + 8, 5 * TILE + 15, 112), (17 * TILE, 5 * TILE + 15, 80)]:
-            p.drawRect(QRectF(bx - bw / 2 + 6, by - 2, bw, 6))
+        # огород и пруд ниже уровня земли: тень от бортика сверху-слева, светлая кромка снизу
+        dark, light = QColor(40, 14, 30, 120), QColor(255, 220, 150, 90)
+        x0, y0, x1, y1 = gx * TILE, gy * TILE, (gx + 4) * TILE, (gy + 3) * TILE
+        p.fillRect(QRectF(x0, y0, x1 - x0, 3), dark)
+        p.fillRect(QRectF(x0, y0 + 3, 2, y1 - y0 - 3), dark)
+        p.fillRect(QRectF(x0, y1 - 1, x1 - x0, 1), light)
+        px0, py0, px1, py1 = 23 * TILE + 3, 11 * TILE + 4, 29 * TILE - 3, 16 * TILE - 3
+        p.fillRect(QRectF(px0, py0, px1 - px0, 4), QColor(20, 20, 60, 130))
+        p.fillRect(QRectF(px0, py0 + 4, 3, py1 - py0 - 4), QColor(20, 20, 60, 110))
+        # падающие тени от всех предметов
+        items = []
+        for _, sid, x, y in objects:
+            spr = ground["grass_tall"] if sid == "grass_tall_g" else assets[sid]
+            items.append((spr.frame(300), spr.anchor[0], spr.anchor[1], x, y))
+        p.setOpacity(0.36)
+        p.drawImage(0, 0, cast_shadows((W * TILE, H * TILE), items))
+        p.setOpacity(1.0)
     for sort_y, sid, x, y in sorted(objects):
         if sid.startswith(("bublik", "klusha")):
             draw("shadow_s", x, y)
@@ -192,6 +230,14 @@ def render(mode, out):
         v.setColorAt(0.55, QColor(255, 255, 255, 0))
         v.setColorAt(1.0, QColor(120, 70, 90, 150))
         q.fillRect(big.rect(), v)
+        # тени облаков плывут по земле
+        for cx, cy, rx, ry in [(0.72, 0.30, 260, 150), (0.18, 0.85, 300, 140)]:
+            cg = QRadialGradient(QPointF(bw * cx, bh * cy), rx)
+            cg.setColorAt(0.0, QColor(70, 60, 120, 70))
+            cg.setColorAt(1.0, QColor(70, 60, 120, 0))
+            q.setBrush(cg); q.setPen(Qt.PenStyle.NoPen)
+            q.save(); q.translate(bw * cx, bh * cy); q.scale(1, ry / rx)
+            q.drawEllipse(QPointF(0, 0), rx, rx); q.restore()
         # тёплое свечение окон
         q.setCompositionMode(QPainter.CompositionMode.CompositionMode_Screen)
         hx, hy = (4 * TILE + 8 - 56) * scale, (5 * TILE + 15 - 95) * scale
